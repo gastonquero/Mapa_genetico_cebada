@@ -1,0 +1,14 @@
+# Data from Ariel Castor fecha:	28 de junio de 2018, 15:26
+# E:\Proyecto_Cebada\genetic_map\Data\rawdata
+crosstype: riself
+geno: Ill50K_Mapeo_geno.csv
+pheno: Ill50K_Mapeo_pheno.csv
+pmap: Ill50K_Mapeo_pmap.csv
+alleles:
+- A
+- B
+genotypes:
+  A: 1
+  B: 2
+na.strings:
+- '-'

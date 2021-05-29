@@ -1,0 +1,14 @@
+# Data from Nicolas Mastandrea fecha:	20 feb. 2020 10:54
+# C:\Users\Usuario\OneDrive\Documentos\Paper_Cebada\Data\rawdata
+crosstype: riself
+geno: Pia_Mapeo_geno_1_tidy.csv
+pheno: Pia_Mapeo_pheno_tidy.csv
+pmap: Pia_Mapeo_pmap_1_tidy.csv
+alleles:
+- A
+- B
+genotypes:
+  A: 1
+  B: 2
+na.strings:
+- '-'

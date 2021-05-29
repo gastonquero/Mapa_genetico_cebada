@@ -1,0 +1,458 @@
+---
+title: "Mapa_Cebada"
+author: "GQ"
+date: "1 de octubre de 2019"
+output: 
+  html_document:
+    theme: journal
+    highlight: default
+    toc: true
+    toc_float: false
+    toc_depth: 4
+    number_sections: true
+---
+## Resumen
+Construcción mapa de cebada 
+Se usaron los datos geneticos de Cebada x Carumbe
+datos enviados por Ariel Castro                                   
+fecha:	28 de junio de 2018, 15:26
+
+## Packages  
+
+```{r message=FALSE , warning =FALSE}
+library (dplyr)
+library (xtable)
+library (tidyverse)
+library (emmeans)
+library (qtl)
+library (qtl2)
+library (stringr)
+library (data.table)
+library (svMisc)
+library (ggpubr)
+library (ggsci)
+library (FactoMineR)
+library (factoextra)
+library (corrplot)
+library (onemap)
+library (broman) 
+library (ASMap)
+```
+
+## Directorio
+
+El directorio de trabajo es `r getwd ()`
+
+## Datos
+Se cargan los datos originales en el formato de *rqtl*
+
+``` {r}
+setwd ("C:/Users/Usuario/Dropbox/Proyecto_Cebada")
+
+Ill50K_Mapeo_pmap <- 
+  read.table(file="./genetic_map/Data/rawdata/Ill50K_Mapeo_pmap_tidy.csv",
+                                header = TRUE, 
+                                sep = ",",
+                                quote = "\"'", 
+                                dec = ".",
+                                na.strings = "-")
+
+Ill50K_Mapeo_geno <- 
+  read.table (file="./genetic_map/Data/rawdata/Ill50K_Mapeo_geno_tidy.csv" , 
+                                header = TRUE, 
+                                sep = ",",
+                                quote = "\"'", 
+                                dec = ".",
+                                na.strings = "-")
+
+Ill50K_Mapeo_pheno <- read.table(file="./genetic_map/Data/rawdata/Ill50K_Mapeo_pheno_tidy.csv" , 
+                                header = TRUE, 
+                                sep = ",",
+                                quote = "\"'", 
+                                dec = ".",
+                                na.strings = "-")
+
+Ill50K_Mapeo.qtl <- read.cross (format="tidy",
+                               dir="./genetic_map/Data/rawdata",
+                               genfile ="Ill50K_Mapeo_geno_tidy.csv", 
+                               mapfile ="Ill50K_Mapeo_pmap_tidy.csv" , 
+                               phefile = "Ill50K_Mapeo_pheno_tidy.csv" , 
+                               na.strings="-",
+                               alleles=c("A","B"),
+                               estimate.map=FALSE, 
+                               convertXdata=TRUE, error.prob=0.0001,
+                               map.function="kosambi",
+                               #F.gen=6, 
+                               crosstype ="riself")
+
+```
+Se cargan los datos originales en el formato de *rqtl2*
+
+```{r}
+
+Ill50K_yaml_file <- "C:/Users/Usuario/Dropbox/Proyecto_Cebada/genetic_map/Data/rawdata/Ill50K_Mapeo.yaml"
+
+Ill50K_Mapeo.qtl.2 <- read_cross2 (Ill50K_yaml_file)
+
+summary (Ill50K_Mapeo.qtl.2)
+```
+## Análisis
+### Curado de Datos
+
+#### Datos faltantes 
+Datos faltantes de la matriz original
+
+```{r , echo=FALSE}
+plotMissing (Ill50K_Mapeo.qtl)
+```
+
+Se eliminan los marcadores con mas del 50 % de datos faltantes
+``` {r}
+ n.missing <- nmissing (Ill50K_Mapeo.qtl, what="mar")[(nmissing(Ill50K_Mapeo.qtl, what="mar"))/sum(summary(Ill50K_Mapeo.qtl)$n.ind)> 0.51] 
+````
+
+Por datos faltantes se eliminados **`r length((names.marker <- c (names(n.missing))))`** marcadores 
+
+Los marcadores eliminados fueron
+``` {r}
+(names.marker <- c (names(n.missing)))
+```
+
+``` {r}
+Ill50K_Mapeo.qtl.a <- drop.markers (Ill50K_Mapeo.qtl, names.marker)
+```
+
+Se eliminan los individuos con mas de 70% no genotipado
+
+``` {r}
+Ill50K_Mapeo.qtl.b  <- subset (Ill50K_Mapeo.qtl.a , 
+                                 ind=(ntyped(Ill50K_Mapeo.qtl.a ) 
+                                  >((totmar(Ill50K_Mapeo.qtl.a) * 70)/100)))
+
+indiv <- subset (Ill50K_Mapeo.qtl.a, 
+                 ind=(ntyped(Ill50K_Mapeo.qtl.a)  
+                      < ((totmar(Ill50K_Mapeo.qtl.a) * 70)/100)))
+
+```
+Los individuos eliminados fueron
+
+``` {r}
+(indiv$pheno$id)
+```
+Esta es la matriz despues de filtrar por datos faltantes
+
+``` {r}
+plotMissing (Ill50K_Mapeo.qtl.b, main="Ill50K_Mapeo.qtl.b")
+
+```
+
+#### Individuos duplicados
+
+Resulta útil comparar los genotipos entre todos los pares de individuos, para revelar pares con genotipos inusualmente similares, que pueden indicar duplicaciones de muestra o gemelos monocigóticos. En cualquier caso, querremos eliminar a un individuo de cada par. 
+
+``` {r}
+dat.cg <- comparegeno (Ill50K_Mapeo.qtl.b)
+hist(dat.cg[lower.tri(dat.cg)], breaks=seq(0, 1, len=101), xlab="matching genotypes", main= NULL)
+rug(dat.cg[lower.tri(dat.cg)])
+
+```
+Por ahora no voy a sacar ningun individuo.
+
+#### Distorsion de segregación
+
+``` {r}
+gt <- geno.table (Ill50K_Mapeo.qtl.b)
+gt [gt$P.value < 0.05/totmar(Ill50K_Mapeo.qtl.b),]
+total <- nind (Ill50K_Mapeo.qtl.b)
+
+gt <- geno.table(Ill50K_Mapeo.qtl.b)
+missing <- gt[,2]
+num.obs <- c(total - missing)
+obs.alelo <- gt[, c(2,3,4)]
+
+Geno.freq <- as.vector(obs.alelo/num.obs)
+
+gfrq <- Geno.freq %>%
+  mutate (mkrs = rownames(Geno.freq)) %>%
+  select(mkrs, everything()) 
+
+imkrs <- unique (rownames(Geno.freq))
+
+freq.geno <- lapply (imkrs, function (filtro) { 
+  GF <- gfrq %>% 
+    dplyr::filter (mkrs == filtro) %>%
+    tidyr::gather ("AA","BB", key="alelle",value ="frq")
+  return (GF)
+})
+
+df.geno.freq <- as_tibble(do.call (rbind, freq.geno))
+
+ggbarplot (df.geno.freq, "mkrs", "frq",
+          fill = "alelle", color = "alelle", 
+          palette =c("orangered1","royalblue4"),
+          label = FALSE, lab.col = "white", lab.pos = "out") +
+          geom_hline(yintercept = 0.5 ,  colour = "black", linetype = "dashed") +
+          rremove("x.text")
+```
+
+Se sacaron los siguientes marcadores 
+```{r}
+(todrop <- rownames (gt[gt$P.value < 1e-10,]))
+Ill50K_Mapeo.qtl.c <- drop.markers (Ill50K_Mapeo.qtl.b, todrop)
+```
+
+Ahora quedan **`r ((totmar(Ill50K_Mapeo.qtl.c)))`** marcadores
+
+Realizo un analisis de calidad de la nueva matriz uso el *ASMap*
+
+```{r}
+
+Ill50K_Mapeo.qtl.d <- mstmap (Ill50K_Mapeo.qtl.c, id = "id",bychr = TRUE, 
+                              anchor = TRUE,dist.fun = "kosambi", trace = FALSE)
+
+sg.d <- statGen (Ill50K_Mapeo.qtl.d,id = "id",  bychr = TRUE, 
+               stat.type = c("xo","dxo","miss"))
+
+```
+
+Estos individuos son clones 
+``` {r}
+gc.d <- genClones (Ill50K_Mapeo.qtl.d,id = "id", tol = 0.95)
+gc.d$cgd
+
+```
+
+Se fijan los clones
+``` {r}
+cgd <- gc.d$cgd
+
+Ill50K_Mapeo.qtl.e <- fixClones (Ill50K_Mapeo.qtl.d, cgd, id = "id", 
+                                 consensus = TRUE)
+```
+
+Ahora quedan **`r ((nind (Ill50K_Mapeo.qtl.e)))`** individuos
+
+
+Sin un mapa construido es imposible determinar el origen de la segregación.
+distorsión. Sin embargo, el uso ciego de marcadores distorsionados también puede
+generar problemas en la creacion del mapa.
+Puede ser más sensato dejar a un lado los marcadores distorsionados y
+construir el mapa con marcadores menos problemáticos. 
+Una vez que se construye el mapa se pueden introducir marcadores más problemáticos
+para determinar si tienen una utilidad o efecto nocivo en el mapa.
+
+``` {r}
+mm.e.AA <- statMark(Ill50K_Mapeo.qtl.e, stat.type = "marker")$marker$AA
+
+Ill50K_Mapeo.qtl.f <- drop.markers(Ill50K_Mapeo.qtl.e, c(markernames(Ill50K_Mapeo.qtl.e)[mm.e.AA > 0.98],
+                                 markernames(Ill50K_Mapeo.qtl.e)[mm.e.AA < 0.2]))
+
+Ill50K_Mapeo.qtl.g <- pullCross (Ill50K_Mapeo.qtl.f, 
+                          type = "seg.distortion", 
+                          pars = list(seg.thresh = "bonf"))
+```
+
+Ahora quedan **`r ((totmar(Ill50K_Mapeo.qtl.g)))`** marcadores.
+Esta es la poblacion con la cual hago el primer mapa.
+
+### Grupos de ligamiento
+Se construyen los grupos de ligamiento con  *ASMap*
+
+``` {r}
+Ill50K_Mapeo.qtl.h <- mstmap (Ill50K_Mapeo.qtl.g, 
+                              id="id",
+                              bychr = FALSE, 
+                              trace = TRUE, 
+                              dist.fun ="kosambi")
+plotMap(Ill50K_Mapeo.qtl.h)
+
+heatMap (Ill50K_Mapeo.qtl.h, markDiagonal = TRUE, lmax = 50, main=NULL )
+``` 
+
+
+### Asignación de los grupos de ligamiento
+
+Se cargan los datos de Bill Thomas de un mapa de referencia de 
+**Golden Promise x Morex **
+Los datos fueron enviados por : 
+de:	Maximiliano Verocai <maxiverocaipay@gmail.com>
+para:	gastonquero@gmail.com
+fecha:	18 abr. 2019 10:21
+asunto:	Fwd: Posiciones de marcadores
+
+``` {r}
+setwd ("C:/Users/Usuario/Dropbox/Proyecto_Cebada")
+GPxM <- 
+  read.table (file="./genetic_map/Data/rawdata/GPxM_Bill_Thomas.csv",
+                                header = TRUE, 
+                                sep = ",",
+                                quote = "\"'", 
+                                dec = ".",
+                                na.strings = "-")
+```
+
+Reemplazar los caracteres de los ID
+``` {r}
+mr <- GPxM$snp
+mr  <- data.frame(sapply(mr , function(x) {
+       gsub("-", "_", x)
+       }))
+xx <- mr [,1]
+GPxM <- GPxM %>%
+        dplyr::mutate (snp = xx)
+```
+
+Este es el mapa que se hizo con la población  **Ill50K_Mapeo.qtl.h**
+
+``` {r}
+map.1 <- pull.map (Ill50K_Mapeo.qtl.h, as.table=TRUE)
+
+map.1.dt <- map.1 %>%
+            mutate(mrk_names = rownames(map.1)) %>%
+            dplyr::select ("mrk_names", "chr" ,"pos")
+```
+
+Se filtran en en mapa de Bill Thomas los marcadores que coinciden con los nuestros.
+Nosotros tenemos **`r (length (unique (map.1.dt$mrk_names)))`** y 
+Bill Thomas **`r (length (unique (map.1.dt$GPxM$snp)))`** 
+
+``` {r}
+mrk.map.1 <- unique (map.1.dt$mrk_names)
+
+GPxM_1 <- GPxM %>%
+          dplyr::filter (snp %in% mrk.map.1) %>%
+          dplyr::arrange (genetic_map_chr)
+```
+
+Coinciden **`r (length (GPxM_1$snp))`**
+
+Esos marcadores los vamos a usar para como *tags* de los grupos de ligamientos generados
+
+Cromosoma **1H**
+``` {r}
+GPxM_1_1H <-  GPxM_1 %>%
+              dplyr::filter (genetic_map_chr =="1H")
+
+mrk.GPxM_1.1H <- unique (GPxM_1_1H$snp)
+
+(map.1.dt_1H <- map.1.dt %>%
+               dplyr::filter  (mrk_names %in% mrk.GPxM_1.1H) %>%
+               dplyr::arrange (chr))
+```
+
+El **cromosoma 1H** se asocia con los grupos de ligamiento 
+**`r (unique (map.1.dt_1H$chr))`**
+
+
+Cromosoma  **2H**
+``` {r}
+GPxM_1_2H <-  GPxM_1 %>%
+              dplyr::filter (genetic_map_chr =="2H")
+
+mrk.GPxM_1.2H <- unique (GPxM_1_2H$snp)
+map.1.dt_2H <- map.1.dt %>%
+  dplyr::filter  (mrk_names %in% mrk.GPxM_1.2H) %>%
+  dplyr::arrange (chr)
+```
+El **cromosoma 2H** se asocia con los grupos de ligamiento 
+**`r (unique (map.1.dt_2H$chr))`**
+
+Cromosoma  **3H**
+``` {r}
+GPxM_1_3H <-  GPxM_1 %>%
+  dplyr::filter (genetic_map_chr =="3H")
+
+mrk.GPxM_1.3H <- unique (GPxM_1_3H$snp)
+
+(map.1.dt_3H <- map.1.dt %>%
+  dplyr::filter  (mrk_names %in% mrk.GPxM_1.3H) %>%
+  dplyr::arrange (chr))
+
+```
+El **el cromosoma 3H** se asocia con los grupos de ligamiento 
+**`r (unique (map.1.dt_3H$chr))`**
+
+Cromosoma  **4H**
+``` {r}
+GPxM_1_4H <-  GPxM_1 %>%
+  dplyr::filter (genetic_map_chr =="4H")
+
+mrk.GPxM_1.4H <- unique (GPxM_1_4H$snp)
+
+(map.1.dt_4H <- map.1.dt %>%
+  dplyr::filter  (mrk_names %in% mrk.GPxM_1.4H) %>%
+  dplyr::arrange (chr))
+
+```
+
+El **cromosoma 4H** se asocia con los grupos de ligamiento  **`r (unique (map.1.dt_4H$chr))`**
+
+Cromosoma  **5H**
+``` {r}
+GPxM_1_5H <-  GPxM_1 %>%
+  dplyr::filter (genetic_map_chr =="5H")
+
+mrk.GPxM_1.5H <- unique (GPxM_1_5H$snp)
+
+(map.1.dt_5H <- map.1.dt %>%
+  dplyr::filter  (mrk_names %in% mrk.GPxM_1.5H) %>%
+  dplyr::arrange (chr))
+
+```
+El **cromosoma 5H** se asocia con los grupos de ligamiento 
+**`r (unique (map.1.dt_5H$chr))`**
+
+Cromosoma  **6H**
+``` {r}
+GPxM_1_6H <-  GPxM_1 %>%
+  dplyr::filter (genetic_map_chr =="6H")
+
+mrk.GPxM_1.6H <- unique (GPxM_1_6H$snp)
+
+map.1.dt_6H <- map.1.dt %>%
+  dplyr::filter  (mrk_names %in% mrk.GPxM_1.6H) %>%
+  dplyr::arrange (chr)
+
+```
+El **cromosoma 6H** se asocia con los grupos de ligamiento 
+**`r (unique (map.1.dt_6H$chr))`**
+
+Cromosoma  **7H** 
+``` {r}
+GPxM_1_7H <-  GPxM_1 %>%
+  dplyr::filter (genetic_map_chr =="7H")
+
+mrk.GPxM_1.7H <- unique (GPxM_1_7H$snp)
+
+(map.1.dt_7H <- map.1.dt %>%
+  dplyr::filter  (mrk_names %in% mrk.GPxM_1.7H) %>%
+  dplyr::arrange (chr))
+
+```
+El **cromosoma 7H** se asocia con los grupos de ligamiento 
+**`r (unique (map.1.dt_7H$chr))`**
+
+Los unicos grupos que coinciden son el **L.3** que se tiene *tags* en  **1H** y **6H**, y el **L.13** con **3H** y **6H** 
+
+Solo marcador **JHI_Hv50k_2016_23594** del grupo **L.3** esta en el **1H** mientras que 60 marcadores del **L.3**  estan en el **6H** 
+
+Solo marcador **JHI_Hv50k_2016_420337** del grupo **L.13** esta en el **6H**
+mientras que 41 marcadores del **L.13**  estan en el **3H** 
+
+Los marcadores antes mencionados (**JHI_Hv50k_2016_23594** , **JHI_Hv50k_2016_420337**) se quitan del analisis 
+
+``` {r}
+Ill50K_Mapeo.qtl.i  <- drop.markers (Ill50K_Mapeo.qtl.h,
+                                c("JHI_Hv50k_2016_23594","JHI_Hv50k_2016_420337"))
+
+```
+
+El grupo **L.13** se vincula al **3H**  y el **L.3** al **6H** 
+
+
+### Ordenamiento de marcadores dentro de los grupos de ligamiento
+
+### Comparación con otros mapas
+
+
+

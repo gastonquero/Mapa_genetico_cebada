@@ -1,11 +1,14 @@
-##########################################################
-# Codigo para el LD y LD decay de la ploblacion de GWAS_Soja
-#
-# Gaston Quero - Sebastian Simomndi 
-# 3/3/2020
-###############################################
+####################################################################
+# Codigo para el LD y LD decay de diferentes poblaciones de mapeo  #
+#                                                                  #
+# Gaston Quero - Sebastian Simomndi                                #
+#                                                                  #
+# 29/5/2021                                                        #
+#                                                                  #
+####################################################################
+
 getwd ()
-setwd ("C:/Users/Usuario/OneDrive/Documentos/Paper_Crop_Science")
+setwd ("R:/Mapa_genetico_cebada")
 
 
 library("Matrix")
@@ -35,9 +38,10 @@ library(LDheatmap)
 library(genetics)
 
 
-## reingreso la poblacion solo de cada cromosoma
+## Poblacion de mapeo (GWAS) soja
+
 soja.cross <- read.cross(format="csv",
-                                 dir="./Data/procdata", file= "cross.data.z14_15.csv",
+                                 dir="./Data/rawdata", file= "9.cross.data.z14_15.csv",
                                  na.strings="-", 
                                  genotypes=c("AA","BB"),
                                  #alleles=c("0","1"),
@@ -46,32 +50,92 @@ soja.cross <- read.cross(format="csv",
                                  convertXdata=TRUE, 
                                  error.prob=0.0001)
 
-soja.cross.tibble <- read_delim (file="./Data/procdata/cross.data.z14_15.csv",
+
+# Se carga la misma base pero como tibble
+
+soja.cross.tibble <- read_delim (file="./Data/rawdata/9.cross.data.z14_15.csv",
                                  delim=",", quote = "\"", 
                                  na = "-", col_names = TRUE)
 
-plotMap (soja.cross, horizontal=TRUE, show.marker.names=FALSE)
+# Nota: se debe unificar los formatos a tibble todo 
+
+## Si el mapa esta en cM se debe correr la funcion jittermap para 
+# evitar la misma posicion de los marcadores.
+
+## Hay que adaptar una funcion para graficar los mapas. 
+
+## info de la poblacion
+summary (soja.cross)
+
+plotMap (soja.cross, horizontal=FALSE, show.marker.names=FALSE)
+
+
+### los argumentos de la funcion para correr la funcion por dentro
 
 data.cross = soja.cross 
 heterozygotes = FALSE
 data.tibble = soja.cross.tibble
+distance.unit = "Mb"
+id.cross = "GWAS.soja"
+#filt.chr = 1
+#data.tibble [1:2, 3610:3618]
 
-filt.chr = 1
-data.tibble [1:2, 3610:3618]
 ## esta funcion calcula el r2 y grafica el heatmap.
-run_plot_heatmap_LD <- function(data.cross = NULL, data.tibble =NULL,  heterozygotes = FALSE){
-  
-nchr.max <- nchr (data.cross)
-  
-list.chr <- 1:nchr.max
-filt.chr = 1
 
+#run_plot_heatmap_LD <- function(id.cross = NULL ,data.cross = NULL, data.tibble =NULL,  heterozygotes = FALSE, distance.unit = NULL){
+
+# Nota: se debe crear la estructura del directorio
+
+
+print (str_c("Se encontraron " , nchr (data.cross), " grupos de ligamientos")) # verifico el numero de cromosomas
+
+if   ( distance.unit != "cM" &  distance.unit != "Mb") {
+  
+  stop (str_c ("Debe definir una unidad de distancia valida"))
+  
+  
+}
+
+if (is.null (distance.unit)) {
+  
+  stop (str_c ("Falta definir unidad de distancia"))
+  
+}   
+
+if   ( distance.unit == "Mb") {
+  
+  print (str_c ("El mapa esta en Mb"))
+
+}
+
+if   ( distance.unit == "cM") {
+  print (str_c ("El mapa esta en cM"))
+
+}
+
+#  numero maximo de grupos de ligamientos
+
+nchr.max <- nchr (data.cross)  
+
+list.chr <- 1:nchr.max
+
+### este es temporal para corre el lapply
+
+filt.chr = 1
+###########  
 
 lapply(list.chr, function (filt.chr){
   
-  print (filt.chr)
+  print (str_c("Estimando GL= " ,filt.chr))
+  
+## hago un subset de cada cromosoma
+  
   crossobj <- subset(data.cross, chr=filt.chr)
-  chr=filt.chr
+  
+  chr <- filt.chr
+  
+#  Esta seccion es para formatear la matriz para para LDheatmap.
+#  Nota: ver si con los nuevos formaatos cambia o no
   
   data <- NULL
   for (i in 1:length(chr)) {
@@ -97,79 +161,126 @@ lapply(list.chr, function (filt.chr){
     genos <- data.frame(genos, g)
   }
   
-  #### add marker names calculate LD
-  ld <- LD(genos)
-  
-  # plot LD heatmap
-  plot.hm <- LDheatmap(ld$"R^2", title=str_c("Pairwise LD_Chr.",filt.chr),
-                       color = colorRampPalette(c("red4", "red","orangered", "orange","yellow1",  "blue4"))(60))
-
-
-  LD.soja.cross.matrix <- plot.hm$LDmatrix
+#### add marker names calculate LD
+### Esta es la funcion que calcula el LD, verificar la documentacion
+##
+##############
 
   
-  write.table (LD.soja.cross.matrix , 
-               file = str_c("./Data/procdata/LD.soja.cross.matrix.",filt.chr,".txt"),
+  
+#######################3
+# Nota : hay que agregar barra de progreso  
+   
+ld <- LD (genos)
+  
+   
+map.cross <- pull.map ( crossobj, as.table = TRUE)
+   
+
+# plot LD heatmap
+# Nota: las figuras se podrian guardar solas como png.
+ 
+   if   ( distance.unit == "Mb") {
+    
+    plot.hm <- LDheatmap ( ld$"R^2", genetic.distances= map.cross$pos, distances="physical",
+                           title=str_c("Pairwise LD_Chr.",filt.chr),
+                           color = colorRampPalette(c("red4", "red","orangered", "orange","yellow1",  "blue4"))(60))
+  }
+   
+   if   ( distance.unit == "cM") {
+     
+     plot.hm <- LDheatmap ( ld$"R^2", genetic.distances= map.cross$pos, distances="genetic",
+                            title=str_c("Pairwise LD_Chr.",filt.chr),
+                            color = colorRampPalette(c("red4", "red","orangered", "orange","yellow1",  "blue4"))(60))
+   }
+   
+
+
+  ### esta es la matriz que sale de la funcion LD
+   
+  LD.cross.matrix <- plot.hm$LDmatrix
+
+  
+  write.table (LD.cross.matrix , 
+               file = str_c("./Data/procdata/",id.cross, "_LD.cross.matrix_", filt.chr,".txt"),
                append = FALSE, quote = TRUE, sep = ",",
                eol = "\n", na = "NA", dec = ".", row.names = TRUE,
                col.names = TRUE)
   
-  if(filt.chr < 10 ) {
-   
-     soja.cross.tibble_snp <- data.tibble  %>%
-                              dplyr::select (starts_with(str_c("S0", filt.chr)))
-  }
+### genero el df de los marcadores y sus distancias
   
-  if(filt.chr >= 10 ) {
-    
-soja.cross.tibble_snp <- data.tibble  %>%
-      dplyr::select (starts_with(str_c("S", filt.chr)))
- 
-     }
+ cross.tibble_dist <- map.cross %>%
+                            dplyr::mutate ( mrks  = rownames(map.cross)) %>%
+                            dplyr::select ( mrks, pos)
+  
 
-#soja.cross.chr.tibble_snp.1 <- soja.cross.tibble_snp [-c(1,2),]
-  
-  
-  soja.cross.tibble_bp <- soja.cross.tibble_snp [2,]
-  
-  mkr.chr <- colnames (soja.cross.tibble_snp)
-  
-  x.mk <- data.frame (mrks = mkr.chr)
-  
-  pos.chr    <- soja.cross.tibble_snp [2,]
-  pos.chr.1  <- data.frame (pos = pos.chr[1,])
-  
-pos.chr.2  <- as.numeric(t(pos.chr.1))
+ cross.tibble_dist <- as_tibble (cross.tibble_dist)
 
-soja.cross.tibble_bp.1 <- x.mk %>%
-                              dplyr::mutate (pos=pos.chr.2)
 
 ### 
-dt <- soja.cross.tibble_bp.1 
+dt <-  cross.tibble_dist 
 list.pos <- (unique (dt$pos))
 list.mrks <- (unique (dt$mrks))
 
 Z <- matrix (0, nrow=length(list.pos), ncol=length(list.pos)) 
 Z <- as.data.frame(Z)
-colnames(Z) <-list.mrks
-rownames(Z) <-list.mrks
+colnames(Z) <- list.mrks
+rownames(Z) <- list.mrks
 
 #### aca empieza la distancia en bp
 x.bp <- lapply (list.pos, function (filtro.x1) { 
+  
+   #filtro.x1 = 153541 
+   print (filtro.x1)
+  
   lapply (list.pos, function (filtro.x2) {
+    
+    #filtro.x2 = 156650 
+    print (filtro.x2)
+    
+    
     dt.x1 <- dt %>% 
-      dplyr::filter (pos == filtro.x1)
-    x1    <- dt.x1 [,2]
-    id.x1 <- dt.x1 [,1]
+             dplyr::filter (pos == filtro.x1)
+  
     dt.x2 <- dt %>% 
-      dplyr::filter (pos == filtro.x2)
-    x2    <- dt.x2 [,2]
-    id.x2 <- dt.x2 [,1]
-    dt.z <- abs (x1 - x2)
-    Z ["id.x1","id.x2"] <- dt.z
+             dplyr::filter (pos == filtro.x2)
+    
+    dt.z <- data.frame (dt.x1,  dt.x2) 
+    
+    dt.z <- dt.z  %>%
+            dplyr::mutate (diff.dist = abs (pos - pos.1))
+    
+    colnames (dt.z) <- c("mrk.1", "pos.1", "mrk.2", "pos.2")
+
   })
 }) 
   
+############# este es el codigo anterior  #########
+#### aca empieza la distancia en bp
+x.bp <- lapply (list.pos, function (filtro.x1) { 
+  lapply (list.pos, function (filtro.x2) {
+    
+    dt.x1 <- dt.mrk %>% 
+      dplyr::filter (pos == filtro.x1)
+    
+    x1    <- dt.x1 [,2]
+    
+    id.x1 <- dt.x1 [,1]
+    
+    dt.x2 <- dt.mrk %>% 
+      dplyr::filter (pos == filtro.x2)
+    
+    x2    <- dt.x2 [,2]
+    id.x2 <- dt.x2 [,1]
+    dt.z <- abs (x1 - x2)
+    Z.1 ["id.x1","id.x2"] <- dt.z
+  })
+}) 
+
+
+
+
+
 names(x.bp) <- list.mrks
 XX.x.bp <- as.data.frame (do.call (cbind, x.bp))
   

@@ -95,7 +95,10 @@ EEMAC.cross <- jittermap (EEMAC.cross, amount=1e-6)
 
 ## esta funcion calcula el r2 y grafica el heatmap.
 
-run_plot_heatmap_LD <- function(id.cross = NULL , data.cross = NULL,  heterozygotes = FALSE, distance.unit = NULL){
+run_plot_heatmap_LD <- function (id.cross = NULL , 
+                                 data.cross = NULL,  
+                                 heterozygotes = FALSE,
+                                 distance.unit = NULL) {
 
 # Nota: se debe crear la estructura del directorio
 
@@ -190,14 +193,17 @@ map.cross <- pull.map ( crossobj, as.table = TRUE)
  
    if   ( distance.unit == "Mb" | distance.unit == "Kb" ) {
     
-    plot.hm <- LDheatmap ( ld$"R^2", genetic.distances= map.cross$pos, distances="physical",
+    plot.hm <- LDheatmap ( ld$"R^2", 
+                           genetic.distances= map.cross$pos, 
+                           distances="physical",
                            title=str_c(id.cross, "Pairwise LD_LG.",filt.chr),
                            color = colorRampPalette(c("red4", "red","orangered", "orange","yellow1",  "blue4"))(60))
   }
    
    if   ( distance.unit == "cM") {
      
-     plot.hm <- LDheatmap ( ld$"R^2", genetic.distances= map.cross$pos, distances="genetic",
+     plot.hm <- LDheatmap ( ld$"R^2", genetic.distances= map.cross$pos, 
+                            distances="genetic",
                             title=str_c(id.cross, "Pairwise LD_LG.",filt.chr),
                             color = colorRampPalette(c("red4", "red","orangered", "orange","yellow1",  "blue4"))(60))
    }
@@ -214,8 +220,8 @@ map.cross <- pull.map ( crossobj, as.table = TRUE)
   
 ### genero el df de los marcadores y sus distancias
   
- cross.tibble_dist <- map.cross.1 %>%
-                            dplyr::mutate ( mrks  = rownames(map.cross.1)) %>%
+ cross.tibble_dist <- map.cross %>%
+                            dplyr::mutate ( mrks  = rownames(map.cross)) %>%
                             dplyr::select ( mrks, pos)
   
 
@@ -301,7 +307,7 @@ df.LD.decay <- df.LD.decay  %>%
 if   ( distance.unit == "Kb" ) {
   
   df.LD.decay <- df.LD.decay  %>%
-                dplyr::mutate (diff.dist = diff.dist/1e6)
+                 dplyr::mutate (diff.dist = diff.dist/1e6)
 
 }
 
@@ -349,10 +355,10 @@ plot (x = df.LD.decay$diff.dist , y = df.LD.decay$R2,
       xlab = expression(Distance ~ (Mb))) 
 
 axis(side = 2, las = 1)
-x2 <- max (df.LD.decay$delta.bp, na.rm = TRUE)
+x2 <- max (df.LD.decay$diff.dist, na.rm = TRUE)
 axis (side=1,at=seq(0,x2,10),las = 1)
 
-points (df.LD.decay$diff.dist,df.LD.decay$R2, 
+points (df.LD.decay$diff.dist, df.LD.decay$R2, 
         pch = 20, cex=1.5, col="gray28") 
 box()
 }
@@ -380,7 +386,7 @@ if   ( distance.unit == "cM" ) {
   axis (side=1,at=seq(0,x2,1),las = 1)
   
   
-  points (df.LD.decay$diff.dist,df.LD.decay$R2, 
+  points (df.LD.decay$diff.dist, df.LD.decay$R2, 
           pch = 20, cex=1.5, col="gray28") 
   box()
   dev.off()
@@ -413,16 +419,23 @@ if   ( distance.unit == "cM" ) {
 
 
 
-start_time <- Sys.time()
 
-run_plot_heatmap_LD ( data.cross = EEMAC.cross,
-                      heterozygotes = FALSE,
-                      distance.unit = "cM",
-                      id.cross = "EEMAC.1",
-                      distance.unit = "c" )
 
-end_time <- Sys.time()
-end_time - start_time
+
+start.time <- Sys.time()
+X <- run_plot_heatmap_LD ( id.cross = "EEMAC.cross.1" , 
+                           data.cross = EEMAC.cross,  
+                           heterozygotes = FALSE,
+                           distance.unit = "cM" )
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+
+
+
+
+
+
 
 
 

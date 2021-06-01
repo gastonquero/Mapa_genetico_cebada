@@ -422,14 +422,6 @@ if   ( distance.unit == "cM" ) {
 
 
 
-start.time <- Sys.time()
-X <- run_plot_heatmap_LD ( id.cross = "EEMAC.cross.1" , 
-                           data.cross = EEMAC.cross,  
-                           heterozygotes = FALSE,
-                           distance.unit = "cM" )
-end.time <- Sys.time()
-time.taken <- end.time - start.time
-time.taken
 
 
 

@@ -36,6 +36,7 @@ library("corrplot")
 library(gameofthrones)
 library(LDheatmap)
 library(genetics)
+library(assertive)
 
 ######### 
 # primero cargar la informacion que se tenga del mapa.
@@ -602,19 +603,19 @@ max (df.geno.crom$diff.dist)
 #df.geno.crom.2 <- df.geno.crom %>%
  #                 dplyr::filter (chrom == 2)
 
-max (df.geno.crom.2$diff.dist)
+#max (df.geno.crom.2$diff.dist)
 
 #########
 # Argumentos anteriores
 
-id.cross = "EEMAC.cross.1"
-data= df.geno.crom
-ini = 1
-l1= 0.25
-l2=0.5
-l3=0.75
-seq1 = c(1, 10, 50,100,)
-distance.unit = "Mb"
+#id.cross = "EEMAC.cross.1"
+#data= df.geno.crom
+#ini = 1
+#l1= 0.25
+#l2=0.5
+#l3=0.75
+#seq1 = c(1, 10, 50,100)
+#distance.unit = "Mb"
 
 
 run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2=0.5, l3=0.75, seq1= NULL, distance.unit = NULL) {
@@ -645,7 +646,7 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
   
   
   list.chrom <- unique (data$chrom)
-  filt.crom =2  ###
+  #filt.crom =2  ###
   
   df.qq <- bind_rows (lapply (list.chrom, function (filt.crom){
     
@@ -674,9 +675,7 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
         x.dist.Mb.1 <- x.dist.Mb %>%
                        dplyr::mutate (bin = str_c (bin, "Mb"))
         
-        print (x.dist.Mb.1)
-        
-        
+        #print (x.dist.Mb.1)
         
       #}
       
@@ -697,9 +696,6 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
       ############### hay que revisar estos numeros ##############
       
     }))
-    
-    
-    
     
     # ggv <-  ggviolin(df.violin.plot, x = "bin", y = "R2", title = filt.crom,
     #          color = "black", fill = "azure")
@@ -729,89 +725,51 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
     qqunif %>%
       ggexport(filename = str_c("./Figures/qqunif_",id.cross, "_", filt.crom,".png"))
     
-    if   ( distance.unit == "Kb" ) {
-      x.ini.Mb <- dat.1 %>%
-        dplyr::filter (diff.dist <= ini * 1e5)
-      
-      QQ <- quantile (x.ini.Mb$R2)
-      
-      l1 <- l1
-      l2 <- l2
-      l3 <- l3
-      q1 <- quantile (QQ, l1)
-      q2 <- quantile (QQ, l2)
-      q3 <- quantile (QQ, l3)
-      
-      XX <- data.frame( HLE=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLD = round (q3 [[1]],2), chrom = filt.crom)
-    }
-    
-    
-    
-    if   ( distance.unit == "bp" ) {
-      x.ini.Mb <- dat.1 %>%
-                  dplyr::filter (diff.dist <= ini * 1e-6)
-      
-      QQ <- quantile (x.ini.Mb$R2)
-      
-      l1 <- l1
-      l2 <- l2
-      l3 <- l3
-      q1 <- quantile (QQ, l1)
-      q2 <- quantile (QQ, l2)
-      q3 <- quantile (QQ, l3)
-      
-      XX <- data.frame( HLE=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLD = round (q3 [[1]],2), chrom = filt.crom)
-    }
-    
-    
-    
-    if   ( distance.unit == "cM" ) {
+   # if   ( distance.unit == "cM" ) {
       
       # Nota: aca los estoy estoy tomando cada 0.5 cM hay que ver si esto reemplaza a 0.1 Mb
       
-      list.seqCM <- seq (from = 0.5, to = 20, by = 0.5)
+      #list.seqCM <- seq (from = 0.5, to = 20, by = 0.5)
       #filt.distCM <- 0.5
-      df.QQ.seq.cM <- bind_rows (lapply (list.seqCM, function (filt.distCM){
+      #df.QQ.seq.cM <- bind_rows (lapply (list.seqCM, function (filt.distCM){
         
-        x.ini.cM <- dat.1 %>%
-          dplyr::filter (diff.dist <= ini * filt.distCM)
+       # x.ini.cM <- dat.1 %>%
+        #  dplyr::filter (diff.dist <= ini * filt.distCM)
+      
+        #QQ <- quantile (x.ini.cM$R2)
         
+        #l1 <- l1
+        #l2 <- l2
+        #l3 <- l3
+      #  q1 <- quantile (QQ, l1)
+       # q2 <- quantile (QQ, l2)
+      #  q3 <- quantile (QQ, l3)
         
+       # XX <- data.frame( HLE=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLD = round (q3 [[1]],2), chrom = filt.crom)
         
-        QQ <- quantile (x.ini.cM$R2)
+        #dt.QQ.seq.cM <- XX %>%
+         # dplyr::mutate (inter.cM = filt.distCM ) %>%
+          #dplyr::select (chrom, inter.cM, HLE,   H1,  HLD )
         
-        l1 <- l1
-        l2 <- l2
-        l3 <- l3
-        q1 <- quantile (QQ, l1)
-        q2 <- quantile (QQ, l2)
-        q3 <- quantile (QQ, l3)
-        
-        XX <- data.frame( HLE=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLD = round (q3 [[1]],2), chrom = filt.crom)
-        
-        dt.QQ.seq.cM <- XX %>%
-          dplyr::mutate (inter.cM = filt.distCM ) %>%
-          dplyr::select (chrom, inter.cM, HLE,   H1,  HLD )
-        
-      }))
+      #}))
       
       
-      df.QQ.seq.cM.long <- df.QQ.seq.cM %>%
-        pivot_longer( ! c(chrom,inter.cM), names_to = "cat.LD", values_to = "unqq.R2")
+      #df.QQ.seq.cM.long <- df.QQ.seq.cM %>%
+       # pivot_longer( ! c(chrom,inter.cM), names_to = "cat.LD", values_to = "unqq.R2")
       
       
-      qq.scatt <- ggscatter (df.QQ.seq.cM.long, x = "inter.cM", y = "unqq.R2",
-                             title = str_c("Caida de qqR2 en funcion del bin", id.cross, "_", filt.crom),
-                             color = "cat.LD", shape = "cat.LD",
-                             palette = c("navyblue", "gray48", "darkorange"),
-                             add = "loess", rug= TRUE)
+      #qq.scatt <- ggscatter (df.QQ.seq.cM.long, x = "inter.cM", y = "unqq.R2",
+       #                      title = str_c("Caida de qqR2 en funcion del bin", id.cross, "_", filt.crom),
+        #                     color = "cat.LD", shape = "cat.LD",
+         #                    palette = c("navyblue", "gray48", "darkorange"),
+          #                   add = "loess", rug= TRUE)
       
-      print (qq.scatt)
+      #print (qq.scatt)
       
-      qq.scatt  %>%
-        ggexport(filename = str_c("./Figures/qq.scatt_",id.cross, "_", filt.crom,".png"))
+      #qq.scatt  %>%
+       # ggexport(filename = str_c("./Figures/qq.scatt_",id.cross, "_", filt.crom,".png"))
       
-    }
+  #  }
     
   }))
   return (df.qq)
@@ -826,13 +784,419 @@ EEMAC.cross.1.qq <- run_table_quantiles  ( id.cross = "EEMAC.cross.1",
                        l1= 0.25,
                        l2=0.5,
                        l3=0.75,
-                       seq1 = c(1, 5, 10, 50, 100, 500),
-                       distance.unit = "bp")
+                       seq1 = c(1, 10, 50, 100),
+                       distance.unit = "Mb")
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
 
+filtro = 1
+
+data = df.geno.crom 
+chr= filtro
+ini=10
+l1= 0.25
+l2=0.5
+l3=0.75
+keep.Mb = 0.1
+prob.HLMK = 51
+prob.HUMK = 50
+
+
+run_freq_decay <- function (data, chr=NULL, ini = 1, l1= 0.25, l2=0.5, l3=0.75, keep.Mb =NULL){
+  
+  # el primer index p
+  #index.chrom <- unique (data$chr)
+  
+  # control de la clases de los objetos
+  assert_is_data.frame (data)
+  #assert_is_character (chr)
+  assert_is_numeric(ini)
+  assert_is_numeric(l1)
+  assert_is_numeric(l2)
+  assert_is_numeric(l3)
+  
+  
+  if (any (is_non_positive(ini), na.rm = TRUE)) {
+    # Throw an error
+    stop ("ini contains non-positive values, so no puede caminar.")
+  }
+  
+  if (any (is_non_positive(c(l1, l2, l3)), na.rm = TRUE)) {
+    # Throw an error
+    stop ("limit contains non-positive values, so no se puede calcular.")
+  }
+  
+  
+  if (l1 > 1) {
+    # Throw an error
+    stop ("l1 contains valor mayor a 1, so no se puede calcular.")
+  }
+  
+  
+  if (l2 > 1) {
+    # Throw an error
+    stop ("l2 contains valor mayor a 1, so no se puede calcular.")
+  }
+  
+  if (l3 > 1) {
+    # Throw an error
+    stop ("l2 contains valor mayor a 1, so no se puede calcular.")
+  }
+  
+  
+  chr <- chr
+  print (chr)
+  ini <- ini
+  
+  x1 <- data %>%
+        dplyr::filter (chrom == chr)
+  
+  #summary (x1)
+  
+  x1.na <- x1 %>%
+           dplyr:::filter (R2 != "NA")
+  
+  
+  ### secuencia para el lapply
+  
+  #max_delta_bp <- max(x1.na$diff.dist)
+  max_delta_Mb <- max(x1.na$diff.dist)
+  max_delta_Mb.r <- round(max_delta_Mb + 1,0)
+  #index.Mb <- seq (1, (round(max_delta_Mb + 1,0)), 1)
+  
+  index.Mb <- seq (keep.Mb, max_delta_Mb.r + keep.Mb, keep.Mb)
+  
+
+  
+  dt.plot.LD <- bind_rows ( lapply (index.Mb, function (filt.Mb) { 
+ 
+  ###### verificar esto con sebas     
+    x.ini.Mb <- x1.na %>%
+                dplyr::filter (diff.dist <= 1 * 1e5)  ### aca me quedo con la primer 0.1 Mb siempre
+    
+    QQ <- quantile (x.ini.Mb$R2)
+    
+    l1 <- l1
+    l2 <- l2
+    l3 <- l3
+    q1 <- quantile (QQ, l1)
+    q2 <- quantile (QQ, l2)
+    q3 <- quantile (QQ, l3)
+    
+    
+    
+    ###################
+    XX <- data.frame( HUMk=q1 [[1]] ,  H1= q2 [[1]], HLMk =q3 [[1]], chrom = chr)
+    ################### 
+    
+    
+    print (str_c (filt.Mb, "Mb_chr_", chr))
+    
+    
+    x2 <- x1.na %>%
+          dplyr::filter (diff.dist <= filt.Mb) #este tiene que ser el argumento que cambiar
+                                                          # con algun criterio segun la logitud del cromosoma
+    #dplyr::mutate (Mb = "0.1")
+    
+    num.total <- nrow (x2) # este hay que usar despues.
+    
+    
+    # pp <- # el summary de x2$R2
+    
+    p1 <- x2 %>%
+          dplyr::filter (R2 > q3[[1]]) %>%
+          dplyr::mutate (prob="HLMk") #%>% ### este tiene que cambia 
+    
+    np1 <- nrow (p1)/num.total
+    
+    p2 <- x2 %>%
+      dplyr::filter (R2 > q2[[1]]) %>% ### este tiene que cambia 
+      dplyr::filter (R2 <= q3[[1]]) %>%
+      dplyr::mutate (prob= "LMk")### este tiene que cambia 
+    
+    np2 <- nrow (p2)/num.total
+    
+    p3 <- x2 %>%
+      dplyr::filter (R2 >  q1[[1]]) %>% ### este tiene que cambia 
+      dplyr::filter (R2 <= q2[[1]]) %>%
+      dplyr::mutate (prob= "UMk") ### este tiene que cambia 
+    
+    
+    np3 <- nrow (p3)/num.total
+    
+    p4 <- x2 %>%
+      dplyr::filter (R2 <= q1[[1]]) %>%
+      dplyr::mutate (prob= "HUMk") ### este tiene que cambia 
+    
+    np4 <- nrow (p4)/num.total
+    
+    #XX <- rbind (p1, p2,p3,p4) ## este para que esta??
+    
+    XX.1 <- as.numeric (rbind (np1, np2, np3, np4))
+    
+    XX.1.1 <- c("HLMk","LMk","UMk","HUMk")
+    
+    XX.2 <- data.frame (ratio = XX.1, class = XX.1.1, Mb=filt.Mb)
+    
+    XX.3 <- data.frame (XX.2, num.total = num.total, chrom= chr)
+    
+    #XX.2$clase <- factor(df2$Genotype, levels = c("Genotype 2", "Genotype 3", "Genotype 1")).
+    
+    # Convert the cyl variable to a factor
+    XX.3$class <- as.factor(XX.3$class)
+    XX.3$class <- factor(XX.3$class, levels = c("HUMk", "UMk", "LMk", "HLMk"))
+    
+   return (XX.3)
+    
+  }))
+  
+
+  df.plot.LD <- as_tibble (dt.plot.LD)
+  
+  df.plot.LD.W <- df.plot.LD %>%
+                  dplyr::select (-num.total)
+  
+  
+  df.plot.LD.W <- df.plot.LD %>%
+    dplyr::select (-num.total)%>%
+    pivot_wider(names_from = class, values_from =ratio) %>%
+    dplyr::select (chrom, Mb, everything())
+  
+  
+  write_delim (df.plot.LD.W, file=str_c("./Data/procdata/df.plot.LD.W.", chr,".txt"), 
+               delim = ",", na = "NA") 
+  
+  
+  
+  df.plot.LD <- df.plot.LD %>%
+                dplyr::mutate (num.cat = num.total * ratio) %>%
+                dplyr::select (ratio, class, Mb, num.cat,num.total, chrom )
+  
+  #df.plot.LD <- df.plot.LD %>%
+  #dplyr::mutate(Chrom=chrom)
+  
+  write_csv (df.plot.LD, file= str_c("./Data/procdata/df.freq.LD_", chr,".csv"), 
+             na = "NA", append = FALSE)
+  
+  
+  df.plot.1 <- df.plot.LD %>%
+    dplyr::select (c(Mb, ratio, class))
+  
+  
+  bplt <- ggbarplot (df.plot.1 , "Mb",  "ratio",
+                     title = str_c("LD.decay by interval chr_", chr),
+                     fill = "class", 
+                     border ="white",
+                     #sort.val = "desc",
+                     x.text.angle = 90,
+                     xlab = str_c ("(bin ", keep.Mb ,"Mb)"),
+                     color = "class",
+                     palette =c("navyblue","royalblue3","orange", "red4"),
+                     label = FALSE, lab.col = "white", lab.pos = "in")
+  
+  bplt1 <- bplt + 
+    rremove ("x.text")  
+  
+  bplt1 %>% 
+    ggexport(filename = str_c("./Figures/plot.freq.decay.",chr,".png"))
+  
+  
+  print (bplt1)
+  
+  
+  #### df para el el grafico de numero de parwise
+  clases <- c("HUMk", "HLMk")
+  
+  
+  df.num.HX <-  df.plot.LD %>%
+                dplyr::filter (class %in% clases) %>%
+                dplyr::select (Mb, class, num.cat, chrom )
+  
+  df.num.HX$class <- as.character(df.num.HX$class)
+  
+  df.num.total <-  df.plot.LD %>%
+                 #dplyr::filter (class == "HUMk") %>%
+                 dplyr::select (Mb, class, num.total, chrom )%>%
+                 dplyr::rename (num.cat = num.total) %>%
+                 dplyr::distinct_at (vars(Mb,num.cat, chrom)) %>%
+                 dplyr::mutate (class =  "Ntotal")%>%
+                 dplyr::select (Mb, class, num.cat, chrom)
+  
+  
+  
+  df.num <-  bind_rows (df.num.HX, df.num.total) %>%
+             dplyr::arrange (Mb)
+  
+  df.num$class <- as.factor (df.num$class)
+  
+  scatter.num <- ggscatter (df.num, x = "Mb", y = "num.cat",
+                            color="class", 
+                            palette = c ("red", "navyblue", "gray48"),
+                            title = str_c("num.parwise by interval_", chr),
+                            xlab = str_c ("(bin ", keep.Mb ,"Mb)"),
+                            ylab = "num.parwise") 
+  
+  
+  scatter.num %>%
+    ggexport(filename = str_c("./Figures/plot.scatter.num",chr,".png"))
+  
+  df.num.HLMk <- df.num %>%
+                 dplyr::filter (class == "HLMk")
+  
+  
+  scatter.num.HLMk <- ggscatter (df.num.HLMk, x = "Mb", y = "num.cat",
+                                color="red", 
+                                title = str_c("num.parwise by interval_", chr),
+                                xlab = str_c ("(bin ", keep.Mb ,"Mb)"),
+                                ylab = "num.parwise")
+  
+  scatter.num.HLMk %>%
+    ggexport(filename = str_c("./Figures/plot.scatter.num.HLMk",chr,".png"))
+  
+  print (scatter.num)
+  print (scatter.num.HLMk)
+  
+  
+  ## datos para el grafico de proporciones 
+  
+  df.plot.LD.HUMk <- df.plot.LD %>%
+                     dplyr::filter (class == "HUMk")
+  
+  
+  df.plot.LD.HLMk <- df.plot.LD %>%
+                     dplyr::filter (class == "HLMk")
+
+  
+  df.plot.LD.HLMk$num.cat / df.plot.LD.HUMk$num.cat
+  
+
+  
+### revisar el ratio si esta bien o hay otra mejor forma  
+  
+  df.plot.prob.HLMk_HUMk <-  df.plot.LD.HLMk %>%
+                             dplyr::mutate (ratio.HLHU = num.cat/df.plot.LD.HUMk$num.cat) %>%
+                             dplyr::select (ratio.HLHU, Mb,  chrom)
+                             
+  df.plot.prob.HLMk_HUMk$ratio.HLHU [which(!is.finite( df.plot.prob.HLMk_HUMk$ratio.HLHU))] <- NA
+  
+  
+  
+  df.plot.LD.HLMk_HUMk <- bind_rows (df.plot.LD.HLMk, df.plot.LD.HUMk) %>%
+                          dplyr::arrange (Mb)
+  
+  df.plot.LD.HLMk_HUMk <- df.plot.LD.HLMk_HUMk %>%
+                          dplyr::select ( ratio, class, Mb,chrom )
+  
+
+  umbral.H <- df.plot.LD.W %>%
+              dplyr::filter (HUMk < prob.HUMK/100 & HLMk >= prob.HLMK/100)%>%
+              dplyr::filter (Mb == max(Mb))
+  
+  scatter.prop.total <- ggscatter (df.plot.LD.HLMk_HUMk,  x = "Mb", y = "ratio",
+                                   ylim=c(0,1),
+                                   title = str_c("proption by interval_", chr),
+                                   color = "class",
+                                   palette = c( "navyblue",  "red"),
+                                   xlab = str_c ("(bin ", keep.Mb ,"Mb)")) +
+    geom_hline(yintercept = umbral.H$HUMk, color = "navyblue") +
+    geom_hline(yintercept = umbral.H$HLMk, color ="red") +
+    geom_vline(xintercept = umbral.H$Mb, color ="black") 
+  
+  scatter.prop.total %>%
+    ggexport(filename = str_c("./Figures/scatter.prop.total",chr,".png"))
+  
+  print (scatter.prop.total)
+  
+  
+  umbral.HH <- df.plot.prob.HLMk_HUMk %>%
+               dplyr::filter (Mb == umbral.H$Mb )
+  
+
+  
+  scatter.propHLMk_HUMk <- ggscatter (df.plot.prob.HLMk_HUMk, x = "Mb", y = "ratio.HLHU",
+                                    title = str_c("proportion HLMk/HUMk_", chr),
+                                    #ylim=c(0,1),
+                                    color = "black",
+                                    xlab =  str_c ("(bin ", keep.Mb ,"Mb)")) +
+    geom_vline(xintercept = umbral.H$Mb, color ="black") +
+    geom_hline(yintercept = umbral.HH$ratio.HLHU, color ="black") 
+  
+  
+  scatter.propHLMk_HUMk %>%
+    ggexport(filename = str_c("./Figures/scatter.propHLMk_HUMk",chr,".png"))
+  
+  print (scatter.propHLMk_HUMk)
+
+  
+  umbral.H <- umbral.H %>%
+    dplyr::mutate (HLMk_HUMk = umbral.HH$ratio )
+  
+  
+  write_csv (umbral.H, path= str_c("./Data/procdata/umbral.H_", chr,".csv"), 
+             na = "NA", append = FALSE)
+  
+  return (df.plot.LD)
+}
+
+
+
+
+
+
+head(df.geno.crom)
+#unique (df.geno.crom$chr)
+## Argumentos
+
+
+filtro = "chr_12"
+
+data = df.geno.crom 
+chr= filtro
+ini=1
+l1= 0.25
+l2=0.5
+l3=0.75
+
+
+
+# Voy a correr todos los cromosomas 
+
+index.chrom <- unique (df.geno.crom$chrom)
+
+#index.chrom <- c("chr_1", "chr_18")
+
+dt.all.chrom <- lapply (index.chrom, function (filtro) {
+  
+  run_freq_decay (data = df.geno.crom , chr= filtro, ini=1,l1= 0.25, l2=0.5, l3=0.75)
+  
+})
+
+#names (dt.all.chrom) <- index.chrom
+
+df.all.chrom <- do.call (rbind, dt.all.chrom)
+
+write_delim (df.all.chrom, path = "./Data/procdata/freq_LD.txt", 
+             delim = ",", na = "NA")
+
+#### cargo los umbrales
+
+index.chr <- 1:20
+
+# se cargan las matrices generadas antes 
+# se genear una lista con 20 tibbles
+dt.unbrales.crom <- lapply (index.chr, function (filtro) {
+  
+  H <- read_delim (file=str_c("./Data/procdata/umbral.H_chr_", filtro,".csv"), delim = ",", 
+                   na = "NA", quote = "\"",col_names = TRUE)
+  #G <- G %>%
+  #    dplyr::mutate (chr = str_c("chr_",filtro))
+  print (H)
+  return (H)
+})
+
+df.umbrales.crom <- do.call (rbind, dt.unbrales.crom)
 
 
 
@@ -841,7 +1205,344 @@ time.taken
 
 
 
+end_time <- Sys.time()
 
+end_time - start_time
+
+
+index.chr <- 1:20
+
+# se cargan las matrices generadas antes 
+# se genear una lista con 20 tibbles
+df.nt.bin_chr <- lapply (index.chr, function (filtro) { 
+  
+  G.1 <- read_delim (file=paste("./Data/procdata/df.nt.bin_chr_",filtro,".csv",
+                                sep=""), delim = ",", 
+                     na = "NA", quote = "\"",col_names = TRUE)
+  G.1 <- G.1 %>%
+    dplyr::mutate (chr = str_c("chr_",filtro))
+  print (G.1)
+  return (G.1)
+})
+
+df.nt.bin.crom <- do.call (rbind, df.nt.bin_chr)
+
+unique (df.nt.bin.crom$chr)
+
+chr20 <- df.nt.bin.crom %>%
+  dplyr::filter (chr == "chr_20")
+
+
+plot (chr20$Num.total ~ chr20$Mb, pch=16, col="red")
+
+
+
+## filtro los HLD  ####
+
+run_HLD_decay <- function (data) {
+  
+  index.Chrom <- unique(data$Chrom)
+  
+  dt.HLD.all.chrom <- lapply (index.Chrom, function (filtro) {
+    print (filtro)
+    
+    dt.HLD <-  df.all.chrom %>%
+      dplyr::filter (Chrom == filtro )%>%
+      dplyr::filter (class == "HLD")
+    
+    As1 <- 0.16 
+    ts1 <- 0.1
+    As2 <- 0.8
+    ts2 <- 10
+    ys0 <- 0.01
+    
+    eq.HLD.decay <- nls (ratio ~ A1*exp (-Mb/t1) +  A2*exp (-Mb/t2) + y0,               # esta es la estimacion de los parametros por Gauss-Newton
+                         start = list (A1 = As1,
+                                       t1= ts1 ,
+                                       A2 = As2,
+                                       t2 = ts2,
+                                       y0 = ys0 ),
+                         trace = FALSE , 
+                         data= dt.HLD, 
+                         nls.control(warnOnly=TRUE))
+    
+    dt_param <- cbind (chromosome = filtro, coef (eq.HLD.decay))
+    
+    A1.eq <- coef (eq.HLD.decay)[1] 
+    t1.eq <- coef (eq.HLD.decay)[2]    
+    A2.eq <- coef (eq.HLD.decay)[3]
+    t2.eq <- coef (eq.HLD.decay)[4]
+    y0.eq <- coef (eq.HLD.decay)[5]
+    
+    pG <- t1.eq * t2.eq / (t2.eq - t1.eq)* log(A1.eq/A2.eq)
+    
+    dt_param <- data.frame (chromosome = filtro, 
+                            A1= round (A1.eq, 3),   
+                            t1= round (t1.eq, 3), 
+                            A2= round (A2.eq, 3) , 
+                            t2= round (t2.eq, 3),   
+                            y0= round (y0.eq, 3), 
+                            pinf= round (pG, 3))
+  })
+  
+  # hay que agregar el pearson 
+  # agregar el R2 del desequilibrio
+  
+  df.plot.LD <- as_tibble (do.call (rbind, dt.HLD.all.chrom))
+  
+  
+  return (df.plot.LD)
+  
+}
+
+run_plot_HLD_decay <- function (data) {
+  
+  index.Chrom <- unique(data$Chrom)
+  
+  dt.HLD.all.chrom <- lapply (index.Chrom, function (filtro) {
+    print (filtro)
+    
+    dt.HLD <-  df.all.chrom %>%
+      dplyr::filter (Chrom == filtro )%>%
+      dplyr::filter (class == "HLD")
+    
+    As1 <- 0.16 
+    ts1 <- 0.1
+    As2 <- 0.8
+    ts2 <- 10
+    ys0 <- 0.01
+    
+    eq.HLD.decay <- nls (ratio ~ A1*exp (-Mb/t1) +  A2*exp (-Mb/t2) + y0,               # esta es la estimacion de los parametros por Gauss-Newton
+                         start = list (A1 = As1,
+                                       t1= ts1 ,
+                                       A2 = As2,
+                                       t2 = ts2,
+                                       y0 = ys0 ),
+                         trace = FALSE , 
+                         data= dt.HLD, 
+                         nls.control(warnOnly=TRUE))
+    
+    ## mostrar el coeficiente de correlacion de pearson
+    
+    dt_param <- cbind (chromosome = filtro, coef (eq.HLD.decay))
+    
+    A1.eq <- coef (eq.HLD.decay)[1] 
+    t1.eq <- coef (eq.HLD.decay)[2]    
+    A2.eq <- coef (eq.HLD.decay)[3]
+    t2.eq <- coef (eq.HLD.decay)[4]
+    y0.eq <- coef (eq.HLD.decay)[5]
+    
+    pG <- t1.eq * t2.eq / (t2.eq - t1.eq)* log(A1.eq/A2.eq)
+    
+    
+    # el K es la cantidad de veces que aporta una
+    # con respecto a la otra
+    
+    # pG.K <- t1.eq * t2.eq / (t2.eq - t1.eq)* log(A1.eq/(k * A2.eq))
+    
+    # pG.1K <- t1.eq * t2.eq / (t2.eq - t1.eq)* log(A1.eq/(1/k * A2.eq))
+    
+    
+    py <- A1.eq*exp (-pG/t1.eq) +  y0.eq
+    
+    
+    plot (ratio ~ Mb,
+          ylim = c(0,max(dt.HLD$ratio + 0.05)),
+          #xlim= c(0,max(dt.HLD$cantidad + 0.5)),
+          pch=16,
+          col="gray",
+          cex=1,
+          axes=FALSE,
+          xlab="", 
+          ylab="", 
+          type="n",
+          main = str_c("HLD_decay_", filtro),
+          data=dt.HLD)
+    
+    axis(2, ylim=c(0,max(dt.HLD$ratio + 0.05)),col="black",las=1)  ## las=1 makes horizontal labels
+    mtext("ratio.HLD",side=2,line=2.5)
+    axis(1)
+    mtext("delta.Mb",side=1,line=2.5)
+    box()
+    
+    points (ratio ~ Mb,
+            pch=16,
+            col="gray48",
+            cex=1.3,
+            data=dt.HLD)
+    
+    curve  (A1.eq*exp (-x/t1.eq) +  A2.eq*exp (-x/t2.eq) + y0.eq, 
+            from=0, to = max(dt.HLD$Mb) + 1,
+            xlab="Mb", ylab="f(x)" ,lwd=2,
+            add = TRUE, col="black",lty= 4)
+    
+    
+    segments(x0=pG, y0=0, x1 = pG, y1 = py,
+             col = "black", lty = 1, lwd = 2)
+    
+    segments(x0=-3, y0=py, x1 = pG, y1 = py,
+             col = "black", lty = 1, lwd = 2)
+    
+    abline (h=0 , col="black", lwd=1)
+    
+    #abline (v=pG + 1, col="black", lwd=2)
+    
+    curve  (A2.eq*exp (-x/t2.eq) + y0.eq, 
+            from=0, to = max(dt.HLD$Mb) + 1,
+            xlab="Mb", ylab="f(x)" ,lwd=2,
+            add = TRUE, col="navyblue",lty= 1)
+    
+    curve  (A1.eq*exp (-x/t1.eq) + y0.eq, 
+            from=0, to =  max(dt.HLD$Mb),
+            xlab="Mb", ylab="f(x)" ,lwd=2,
+            add = TRUE, col="darkorange",lty= 1)
+  })
+  
+}
+
+
+table_HLD <- run_HLD_decay (data=df.all.chrom)
+
+write_delim (table_HLD, path="./Data/procdata/table_HLD.txt",
+             delim = ",", na = "NA")
+
+
+plot_HLD <- run_plot_HLD_decay (data=df.all.chrom)
+
+# punto medio de transicion 
+
+end_time <- Sys.time()
+
+end_time - start_time
+
+
+
+plot (cantidad ~ Mb, 
+      pch=16,
+      col="gray",
+      data= HLD.chr.3)
+
+
+As1 <- 0.16 
+ts1 <- 0.1
+As2 <- 0.8
+ts2 <- 10
+ys0 <- 0.01
+
+eq.LD.decay <- nls (cantidad ~ A1*exp (-Mb/t1) +  A2*exp (-Mb/t2) + y0,               # esta es la estimacion de los parametros por Gauss-Newton
+                    start = list (A1 = As1,
+                                  t1= ts1 ,
+                                  A2 = As2,
+                                  t2 = ts2,
+                                  y0 = ys0 ),
+                    trace = FALSE , 
+                    data= HLD.chr.1, nls.control(warnOnly=TRUE))
+
+
+
+# From previous step
+groom_model <- function(model) {
+  list(
+    model = glance(model),
+    coefficients = tidy(model),
+    observations = augment(model)
+  )
+}
+
+# Call groom_model on model, assigning to 3 variables
+c(mdl, cff, obs)%<-%groom_model (model)
+
+# See these individual variables
+mdl; cff; obs
+mdl [1]
+
+
+
+
+
+dt <- HLD.chr.4
+As1 <- 0.16 
+ts1 <- 0.1
+As2 <- 0.8
+ts2 <- 10
+ys0 <- 0.01
+
+eq.LD.decay <- nls (cantidad ~ A1*exp (-Mb/t1) +  A2*exp (-Mb/t2) + y0,               # esta es la estimacion de los parametros por Gauss-Newton
+                    start = list (A1 = As1,
+                                  t1= ts1 ,
+                                  A2 = As2,
+                                  t2 = ts2,
+                                  y0 = ys0 ),
+                    trace = FALSE , 
+                    data= dt, nls.control(warnOnly=TRUE))
+
+A1.eq <- coef (eq.LD.decay)[1]      # este es el A1 de Gauss-Newton
+t1.eq <- coef (eq.LD.decay)[2]    
+A2.eq <- coef (eq.LD.decay)[3]
+t2.eq <- coef (eq.LD.decay)[4]
+y0.eq <- coef (eq.LD.decay)[5]
+
+
+pG <- t1.eq * t2.eq / (t2.eq - t1.eq)* log(A1.eq/A2.eq)
+
+pGG1 <- A1.eq*exp (-(pG+x) /t1.eq) 
+pGG2 <-  A2.eq*exp (-pG /t2.eq) 
+
+
+
+
+plot (cantidad ~ Mb, 
+      pch=16,
+      cex=1,
+      col="gray48",
+      data= dt)
+
+
+curve  (A1.eq*exp (-x/t1.eq) +  A2.eq*exp (-x/t2.eq) + y0.eq, 
+        from=0, to = max(dt$Mb) + 1,
+        xlab="Mb", ylab="f(x)" ,lwd=2,
+        add = TRUE, col="blue",lty= 1)
+
+abline (v=pG + 0.1, col="red", lwd=2)
+
+abline (v=pG + 1, col="black", lwd=2)
+
+curve  (A2.eq*exp (-x/t2.eq) + y0.eq, 
+        from=0, to = max(dt$Mb) + 1,
+        xlab="Mb", ylab="f(x)" ,lwd=2,
+        add = TRUE, col="darkgreen",lty= 1)
+
+curve  (A1.eq*exp (-x/t1.eq) + y0.eq, 
+        from=0, to = pG,
+        xlab="Mb", ylab="f(x)" ,lwd=2,
+        add = TRUE, col="darkorange",lty= 1)
+
+plot (cantidad ~ Mb, 
+      xlim = c(0,1.5),
+      pch=16,
+      cex=1.5,
+      col="gray48",
+      data= dt)
+
+
+curve  (A1.eq*exp (-(pG+x) /t1.eq), 
+        from=0, to = 1,
+        xlab="Mb", ylab="f(x)" ,lwd=2,
+        add = TRUE, col="black",lty= 1)
+
+curve  (A2.eq*exp (-(pG+x) /t2.eq) , 
+        from=0, to = 1,
+        xlab="Mb", ylab="f(x)" ,lwd=2,
+        add = TRUE, col="red",lty= 1)
+
+
+
+
+
+
+curve  (B.eq.07 *(1- exp (- k.eq.07  * x)), 
+        from=0, to = max(dt$time) + 1, xlab="time", ylab="ET" ,lwd=1,
+        add = TRUE, col="red",lty= 2)
 
 
 

@@ -37,6 +37,119 @@ library(gameofthrones)
 library(LDheatmap)
 library(genetics)
 
+######### 
+# primero cargar la informacion que se tenga del mapa.
+
+mapa.cebada.bill  <- read_delim (file = "./Data/rawdata/8.Bill_thomas_table_3.txt" ,
+                      col_names = TRUE, delim = "\t", na = "NA")
+
+## Se cargan los datos de la poblacion de mapeo con la cual se va a hacer la caida del LD.
+
+EEMAC.cross <- read.cross (format="csv",
+                           dir="./Data/rawdata", file= "1.cross_EEMAC.1.csv",
+                           na.strings="NA", 
+                           genotypes=c("0","1"),
+                           #alleles=c("0","1"),
+                           estimate.map=FALSE,
+                           crosstype ="dh",	
+                           convertXdata=TRUE, error.prob=0.0001)
+
+summary (EEMAC.cross )
+
+### se extrae el Mapa de la poblacion de mapeo.
+
+mapa.EEMAC.cross <- pull.map (EEMAC.cross, as.table=TRUE)
+
+row.names (mapa.EEMAC.cross)
+
+mapa.EEMAC.cross <- mapa.EEMAC.cross  %>%
+                    dplyr::mutate (snp = row.names (mapa.EEMAC.cross)) 
+
+
+#row.names (mapa.EEMAC.cross) <- NULL
+
+### Veo cuantos de los marcadores de la poblacion de mapeo estan en la info del mapa general
+
+
+mapa.EEMAC.cross.bill <- mapa.EEMAC.cross %>%
+                         left_join(mapa.cebada.bill, by="snp")
+                         
+
+## Extraer los maracadores que tienen las posiciones en bp y en cM
+
+mapa.EEMAC.cross.bill.bp <- mapa.EEMAC.cross.bill  %>%
+                            dplyr::filter (!is.na(bp))
+
+pos.unique <- unique (mapa.EEMAC.cross.bill.bp$pos)
+
+mapa.EEMAC.cross.cM <- mapa.EEMAC.cross %>%
+                       dplyr::filter (pos %in% pos.unique)
+
+
+#### hago una lista de los marcadores que debo sacar del mapa de la poblacion de mapeo
+
+head ( mapa.EEMAC.cross.bill.bp)
+
+list.mark <- unique (mapa.EEMAC.cross.bill.bp$snp)
+
+drop.list.mark <- mapa.EEMAC.cross %>%
+                  dplyr::filter (! snp %in%  list.mark)
+
+head (drop.list.mark)
+
+### saco los marcadores de la poblacion de mapeo
+
+EEMAC.cross.1 <- drop.markers (EEMAC.cross, c(drop.list.mark$snp))
+
+summary (EEMAC.cross.1)
+
+write.cross (EEMAC.cross.1, format= "tidy",
+            filestem= "./Data/procdata/2.cross_EEMAC.1")
+
+### cargo de nuevo la matriz pero en formato tidy 
+
+map.cross.2 <-  read_delim ( file ="./Data/procdata/2.cross_EEMAC.1_map.csv" , delim= ",",
+                             quote = "\"", escape_backslash = FALSE,escape_double = TRUE,
+                             col_names = TRUE, col_types = NULL, na = "NA")
+head(map.cross.2)
+
+map.cross.2 <- map.cross.2 %>%
+               dplyr::rename (snp =  X1 )
+
+
+mapa.EEMAC.cross.bill.bp.select <- mapa.EEMAC.cross.bill.bp %>%
+                                   dplyr::select (c ("chr", "snp", "bp"))
+
+head (map.cross.2.bp  )
+
+map.cross.2.bp <- map.cross.2 %>%
+                  dplyr::inner_join (mapa.EEMAC.cross.bill.bp.select, by="snp") %>%
+                  dplyr::select (c ("snp","chr.x", "bp")) %>%
+                  dplyr::rename (chr = chr.x) %>%
+                  dplyr::rename (pos = bp)
+
+map.cross.2.bp  <- write_delim (map.cross.2.bp, 
+                               file ="./Data/procdata/2.cross_EEMAC.1_map.bp.csv", delim = ",")
+
+#### Antes de cargar de nuevo borrar la etiqueta de la columna "snp"
+
+EEMAC.cross.1.bp <- read.cross (format="tidy",
+                               dir="./Data/procdata",
+                               genfile = "2.cross_EEMAC.1_gen.csv",
+                               mapfile = "2.cross_EEMAC.1_map.bp.csv", 
+                               phefile =  "2.cross_EEMAC.1_phe.csv",
+                               na.strings="-", 
+                               genotypes=c("AA","BB"),
+                               crosstype ="dh",
+                               estimate.map=FALSE, error.prob=0.0001)
+  
+summary (EEMAC.cross.1.bp)
+
+
+
+
+
+plotMap (EEMAC.cross.1.bp, horizontal=FALSE, show.marker.names=FALSE)
 
 ## Poblacion de mapeo (GWAS) soja
 
@@ -64,31 +177,29 @@ plotMap (soja.cross, horizontal=FALSE, show.marker.names=FALSE)
 
 ### los argumentos de la funcion para correr la funcion por dentro
 
-data.cross = soja.cross 
-heterozygotes = FALSE
-data.tibble = soja.cross.tibble
-distance.unit = "Mb"
-id.cross = "GWAS.soja"
+#data.cross = soja.cross 
+#heterozygotes = FALSE
+#data.tibble = soja.cross.tibble
+#distance.unit = "Mb"
+#id.cross = "GWAS.soja"
 
 ############# CEBADA 
-## Si el mapa esta en cM se debe correr la funcion jittermap para 
+##  funcion jittermap para 
 # evitar la misma posicion de los marcadores.
 
-EEMAC.cross <- read.cross (format="csv",
-                           dir="./Data/rawdata", file= "1.cross_EEMAC.1.csv",
-                           na.strings="NA", 
-                           genotypes=c("0","1"),
-                           #alleles=c("0","1"),
-                           estimate.map=FALSE, 
-                           convertXdata=TRUE, error.prob=0.0001)
 
-EEMAC.cross <- jittermap (EEMAC.cross, amount=1e-6)
+#EEMAC.cross.1 <- jittermap (EEMAC.cross.1, amount=1e-6)
 
-#data.cross = EEMAC.cross
-#heterozygotes = FALSE
-#distance.unit = "cM"
-#id.cross = "EEMAC.1"
-#distance.unit = "cM"
+
+
+data.cross = EEMAC.cross.1.bp
+heterozygotes = FALSE
+distance.unit = "bp"
+id.cross = "EEMAC.cross.1.bp"
+
+
+
+# 1 bp => 1e-6 Mb
 
 #filt.chr = 1
 #data.tibble [1:2, 3610:3618]
@@ -104,7 +215,7 @@ run_plot_heatmap_LD <- function (id.cross = NULL ,
 
 print (str_c("Se encontraron " , nchr (data.cross), " grupos de ligamientos")) # verifico el numero de cromosomas
 
-if   ( distance.unit != "cM" &  distance.unit != "Mb") {
+if   ( distance.unit != "cM" &  distance.unit != "bp" &  distance.unit != "kb" & distance.unit != "Mb") {
   
   stop (str_c ("Debe definir una unidad de distancia valida"))
   
@@ -117,7 +228,7 @@ if (is.null (distance.unit)) {
   
 }   
 
-if   ( distance.unit == "Mb" | distance.unit == "Kb" ) {
+if   (distance.unit == "bp" | distance.unit == "Kb" | distance.unit == "Mb"  ) {
   
   print (str_c ("El mapa es un mapa fisico"))
   
@@ -150,7 +261,7 @@ lapply(list.chr, function (filt.chr){
   chr <- filt.chr
   
 #  Esta seccion es para formatear la matriz para para LDheatmap.
-#  Nota: ver si con los nuevos formaatos cambia o no
+#  Nota: ver si con los nuevos formatos cambia o no
   
   data <- NULL
   for (i in 1:length(chr)) {
@@ -191,20 +302,21 @@ map.cross <- pull.map ( crossobj, as.table = TRUE)
 # plot LD heatmap
 # Nota: las figuras se podrian guardar solas como png.
  
-   if   ( distance.unit == "Mb" | distance.unit == "Kb" ) {
+   if   ( distance.unit == "bp" | distance.unit == "Kb" | distance.unit == "Mb" ) {
     
     plot.hm <- LDheatmap ( ld$"R^2", 
                            genetic.distances= map.cross$pos, 
                            distances="physical",
-                           title=str_c(id.cross, "Pairwise LD_LG.",filt.chr),
+                           title=str_c(id.cross, "_Pairwise LD_LG.",filt.chr),
                            color = colorRampPalette(c("red4", "red","orangered", "orange","yellow1",  "blue4"))(60))
-  }
+    
+    }
    
    if   ( distance.unit == "cM") {
      
      plot.hm <- LDheatmap ( ld$"R^2", genetic.distances= map.cross$pos, 
                             distances="genetic",
-                            title=str_c(id.cross, "Pairwise LD_LG.",filt.chr),
+                            title=str_c(id.cross, "Pairwise LD_LG.", filt.chr),
                             color = colorRampPalette(c("red4", "red","orangered", "orange","yellow1",  "blue4"))(60))
    }
    
@@ -235,14 +347,16 @@ list.mrks <- (unique (dt$mrks))
 
 print (str_c("Estimando diff.dist LG= " ,filt.chr))
 
+
+
 dt.diff.dist <- bind_rows (lapply (list.pos, function (filtro.x1) { 
   
-   #filtro.x1 = 153541 
+   #filtro.x1 =  277230
    #print (filtro.x1)
   
  dt.dist.2 <- bind_rows ( lapply (list.pos, function (filtro.x2) {
     
-    #filtro.x2 = 293684
+    #filtro.x2 =  2415604 
     #print (filtro.x2)
     
     dt.x1 <- dt %>% 
@@ -266,10 +380,12 @@ dt.diff.dist <- bind_rows (lapply (list.pos, function (filtro.x1) {
   }))
   
 }))
-  
+
+start.time <- Sys.time()
+
 df.LD.decay <- bind_rows ( lapply (list.mrks, function (filt.mrk) {
   
-  #filtro = "S01_153541"
+  #filt.mrk= "JHI-Hv50k-2016-270"
 
   #print (filt.mrk)
   
@@ -300,9 +416,22 @@ df.LD.decay <- bind_rows ( lapply (list.mrks, function (filt.mrk) {
   
 }))
 
+
+
+
 df.LD.decay <- df.LD.decay  %>%
                dplyr::mutate (LG = str_c ("lg.", filt.chr)) %>%
                dplyr::arrange (diff.dist) 
+
+### verificar estas medidas
+
+if   ( distance.unit == "bp" ) {
+  
+  df.LD.decay <- df.LD.decay  %>%
+    dplyr::mutate (diff.dist = (diff.dist*1e-6))
+  
+}
+
 
 if   ( distance.unit == "Kb" ) {
   
@@ -314,7 +443,7 @@ if   ( distance.unit == "Kb" ) {
 write_delim (df.LD.decay  , file =str_c("./Data/procdata/", id.cross, "LD.decay.LG", filt.chr,".txt"),
              delim = ",", na = "NA")
 
-if   ( distance.unit == "Mb" | distance.unit == "Kb" ) {
+if   ( distance.unit == "bp" | distance.unit == "Kb" | distance.unit == "bp" ) {
 
   png (filename = str_c("./Figures/",id.cross,".LD.decay.LG_", filt.chr,".png"),
     width = 480, height = 480, units = "px", pointsize = 12,
@@ -363,79 +492,75 @@ points (df.LD.decay$diff.dist, df.LD.decay$R2,
 box()
 }
 
-if   ( distance.unit == "cM" ) {
+#if   ( distance.unit == "cM" ) {
   
-  png (filename = str_c("./Figures/",id.cross,".LD.decay.LG_", filt.chr,".png"),
-       width = 480, height = 480, units = "px", pointsize = 12,
-       bg = "white", res = NA)
+  #png (filename = str_c("./Figures/",id.cross,".LD.decay.LG_", filt.chr,".png"),
+  #     width = 480, height = 480, units = "px", pointsize = 12,
+   #    bg = "white", res = NA)
   
-  plot (x = df.LD.decay$diff.dist , y = df.LD.decay$R2, 
-        main=str_c(id.cross,".LD.decay.LG_", filt.chr),
-        pch = 20, 
-        type ="n",
-        xaxt="none",
-        yaxt="none",
-        axes = F,
-        xlim = c(0, max (df.LD.decay$diff.dist)), 
-        ylim = c(0, max (df.LD.decay$R2, na.rm = TRUE)),
-        ylab = expression(LD ~ (r^2)),
-        xlab = expression(Distance ~ (cM))) 
+#  plot (x = df.LD.decay$diff.dist , y = df.LD.decay$R2, 
+ #       main=str_c(id.cross,".LD.decay.LG_", filt.chr),
+#        pch = 20, 
+ #       type ="n",
+  #      xaxt="none",
+   #     yaxt="none",
+    #    axes = F,
+     #   xlim = c(0, max (df.LD.decay$diff.dist)), 
+      #  ylim = c(0, max (df.LD.decay$R2, na.rm = TRUE)),
+       # ylab = expression(LD ~ (r^2)),
+        #xlab = expression(Distance ~ (cM))) 
   
-  axis(side = 2, las = 1)
-  x2 <- max (df.LD.decay$diff.dist, na.rm = TRUE)
-  axis (side=1,at=seq(0,x2,1),las = 1)
-  
-  
-  points (df.LD.decay$diff.dist, df.LD.decay$R2, 
-          pch = 20, cex=1.5, col="gray28") 
-  box()
-  dev.off()
-  
-  plot (x = df.LD.decay$diff.dist, y = df.LD.decay$R2, 
-        main=str_c(id.cross,".LD.decay.LG_", filt.chr),
-        pch = 20, 
-        type ="n",
-        xaxt="none",
-        yaxt="none",
-        axes = F,
-        xlim = c(0, max (df.LD.decay$diff.dist)), 
-        ylim = c(0, max (df.LD.decay$R2, na.rm = TRUE)),
-        ylab = expression(LD ~ (r^2)),
-        xlab = expression(Distance ~ (cM))) 
-  
-  axis(side = 2, las = 1)
-  x2 <- max (df.LD.decay$diff.dist, na.rm = TRUE)
-  axis (side=1,at=seq(0,x2,1),las = 1)
+ # axis(side = 2, las = 1)
+  #x2 <- max (df.LD.decay$diff.dist, na.rm = TRUE)
+  #axis (side=1,at=seq(0,x2,1),las = 1)
   
   
-  points (df.LD.decay$diff.dist,df.LD.decay$R2, 
-          pch = 20, cex=1.5, col="gray28") 
-  box()
-}
+#  points (df.LD.decay$diff.dist, df.LD.decay$R2, 
+          #pch = 20, cex=1.5, col="gray28") 
+ # box()
+  #dev.off()
+  
+  #plot (x = df.LD.decay$diff.dist, y = df.LD.decay$R2, 
+   #     main=str_c(id.cross,".LD.decay.LG_", filt.chr),
+        #pch = 20, 
+        #type ="n",
+        #xaxt="none",
+        #yaxt="none",
+        #axes = F,
+        #xlim = c(0, max (df.LD.decay$diff.dist)), 
+        #ylim = c(0, max (df.LD.decay$R2, na.rm = TRUE)),
+        #ylab = expression(LD ~ (r^2)),
+        #xlab = expression(Distance ~ (cM))) 
+  
+#  axis(side = 2, las = 1)
+  #x2 <- max (df.LD.decay$diff.dist, na.rm = TRUE)
+  #axis (side=1,at=seq(0,x2,1),las = 1)
+  
+  
+  #points (df.LD.decay$diff.dist,df.LD.decay$R2, 
+          #pch = 20, cex=1.5, col="gray28") 
+  #box()
+#}#
 
 })
 
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Time difference of 1.000327 mins
+start.time <- Sys.time()
 
-run_plot_heatmap_LD (data.cross  = soja.cross, 
-                     data.tibble = soja.cross.tibble,  
-                     heterozygotes = FALSE)
+
+LD.EEMAC.cross.1.bp <- run_plot_heatmap_LD (id.cross ="EEMAC.cross.1.bp" , 
+                                            data.cross = EEMAC.cross.1.bp,  
+                                            heterozygotes = FALSE,
+                                            distance.unit = "bp")
+
+
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+
 
 
 

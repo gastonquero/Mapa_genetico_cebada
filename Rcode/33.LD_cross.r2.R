@@ -44,6 +44,15 @@ library(assertive)
 mapa.cebada.bill  <- read_delim (file = "./Data/rawdata/8.Bill_thomas_table_3.txt" ,
                       col_names = TRUE, delim = "\t", na = "NA")
 
+## La informacion de la posicion fisica debe estar en Mb 
+
+
+mapa.cebada.bill <- mapa.cebada.bill %>%
+                       dplyr::mutate (Mb = bp * 1e-6)
+   
+
+
+
 ## Se cargan los datos de la poblacion de mapeo con la cual se va a hacer la caida del LD.
 
 EEMAC.cross <- read.cross (format="csv",
@@ -78,10 +87,10 @@ mapa.EEMAC.cross.bill <- mapa.EEMAC.cross %>%
 
 ## Extraer los maracadores que tienen las posiciones en bp y en cM
 
-mapa.EEMAC.cross.bill.bp <- mapa.EEMAC.cross.bill  %>%
-                            dplyr::filter (!is.na(bp))
+mapa.EEMAC.cross.bill.Mb <- mapa.EEMAC.cross.bill  %>%
+                            dplyr::filter (!is.na(Mb))
 
-pos.unique <- unique (mapa.EEMAC.cross.bill.bp$pos)
+pos.unique <- unique (mapa.EEMAC.cross.bill.Mb$pos)
 
 mapa.EEMAC.cross.cM <- mapa.EEMAC.cross %>%
                        dplyr::filter (pos %in% pos.unique)
@@ -89,9 +98,9 @@ mapa.EEMAC.cross.cM <- mapa.EEMAC.cross %>%
 
 #### hago una lista de los marcadores que debo sacar del mapa de la poblacion de mapeo
 
-head ( mapa.EEMAC.cross.bill.bp)
+head ( mapa.EEMAC.cross.bill.Mb)
 
-list.mark <- unique (mapa.EEMAC.cross.bill.bp$snp)
+list.mark <- unique (mapa.EEMAC.cross.bill.Mb$snp)
 
 drop.list.mark <- mapa.EEMAC.cross %>%
                   dplyr::filter (! snp %in%  list.mark)
@@ -118,39 +127,36 @@ map.cross.2 <- map.cross.2 %>%
                dplyr::rename (snp =  X1 )
 
 
-mapa.EEMAC.cross.bill.bp.select <- mapa.EEMAC.cross.bill.bp %>%
-                                   dplyr::select (c ("chr", "snp", "bp"))
+mapa.EEMAC.cross.bill.Mb.select <- mapa.EEMAC.cross.bill.Mb %>%
+                                   dplyr::select (c ("chr", "snp", "Mb"))
 
-head (map.cross.2.bp  )
+head (map.cross.2)
 
-map.cross.2.bp <- map.cross.2 %>%
-                  dplyr::inner_join (mapa.EEMAC.cross.bill.bp.select, by="snp") %>%
-                  dplyr::select (c ("snp","chr.x", "bp")) %>%
+map.cross.2.Mb <- map.cross.2 %>%
+                  dplyr::inner_join (mapa.EEMAC.cross.bill.Mb.select, by="snp") %>%
+                  dplyr::select (c ("snp","chr.x", "Mb")) %>%
                   dplyr::rename (chr = chr.x) %>%
-                  dplyr::rename (pos = bp)
+                  dplyr::rename (pos = Mb)
 
-map.cross.2.bp  <- write_delim (map.cross.2.bp, 
-                               file ="./Data/procdata/2.cross_EEMAC.1_map.bp.csv", delim = ",")
+map.cross.2.Mb  <- write_delim (map.cross.2.Mb, 
+                               file ="./Data/procdata/2.cross_EEMAC.1_map.Mb.csv", delim = ",")
 
 #### Antes de cargar de nuevo borrar la etiqueta de la columna "snp"
 
-EEMAC.cross.1.bp <- read.cross (format="tidy",
+EEMAC.cross.1.Mb <- read.cross (format="tidy",
                                dir="./Data/procdata",
                                genfile = "2.cross_EEMAC.1_gen.csv",
-                               mapfile = "2.cross_EEMAC.1_map.bp.csv", 
+                               mapfile = "2.cross_EEMAC.1_map.Mb.csv", 
                                phefile =  "2.cross_EEMAC.1_phe.csv",
                                na.strings="-", 
                                genotypes=c("AA","BB"),
                                crosstype ="dh",
                                estimate.map=FALSE, error.prob=0.0001)
   
-summary (EEMAC.cross.1.bp)
+summary (EEMAC.cross.1.Mb)
 
-
-
-
-
-plotMap (EEMAC.cross.1.bp, horizontal=FALSE, show.marker.names=FALSE)
+### hay que mejor esto
+plotMap (EEMAC.cross.1.Mb, horizontal=FALSE, show.marker.names=FALSE)
 
 ## Poblacion de mapeo (GWAS) soja
 
@@ -193,10 +199,10 @@ plotMap (soja.cross, horizontal=FALSE, show.marker.names=FALSE)
 
 
 
-data.cross = EEMAC.cross.1.bp
+data.cross = EEMAC.cross.1.Mb
 heterozygotes = FALSE
-distance.unit = "bp"
-id.cross = "EEMAC.cross.1.bp"
+distance.unit = "Mb"
+id.cross = "EEMAC.cross.1.Mb"
 
 
 
@@ -216,7 +222,7 @@ run_plot_heatmap_LD <- function (id.cross = NULL ,
 
 print (str_c("Se encontraron " , nchr (data.cross), " grupos de ligamientos")) # verifico el numero de cromosomas
 
-if   ( distance.unit != "cM" &  distance.unit != "bp" &  distance.unit != "kb" & distance.unit != "Mb") {
+if   ( distance.unit != "cM" & distance.unit != "Mb") {
   
   stop (str_c ("Debe definir una unidad de distancia valida"))
   
@@ -229,7 +235,7 @@ if (is.null (distance.unit)) {
   
 }   
 
-if   (distance.unit == "bp" | distance.unit == "Kb" | distance.unit == "Mb"  ) {
+if   ( distance.unit == "Mb"  ) {
   
   print (str_c ("El mapa es un mapa fisico"))
   
@@ -301,9 +307,8 @@ lapply(list.chr, function (filt.chr){
 map.cross <- pull.map ( crossobj, as.table = TRUE)
    
 # plot LD heatmap
-# Nota: las figuras se podrian guardar solas como png.
  
-   if   ( distance.unit == "bp" | distance.unit == "Kb" | distance.unit == "Mb" ) {
+   if   ( distance.unit == "Mb" ) {
     
     plot.hm <- LDheatmap ( ld$"R^2", 
                            genetic.distances= map.cross$pos, 
@@ -349,22 +354,16 @@ list.mrks <- (unique (dt$mrks))
 print (str_c("Estimando diff.dist LG= " ,filt.chr))
 
 
-
+#start.time <- Sys.time()
 dt.diff.dist <- bind_rows (lapply (list.pos, function (filtro.x1) { 
   
-   #filtro.x1 =  277230
+   #filtro.x1 =  0.277230 
    #print (filtro.x1)
   
- dt.dist.2 <- bind_rows ( lapply (list.pos, function (filtro.x2) {
-    
-    #filtro.x2 =  2415604 
-    #print (filtro.x2)
-    
     dt.x1 <- dt %>% 
              dplyr::filter (pos == filtro.x1)
   
-    dt.x2 <- dt %>% 
-             dplyr::filter (pos == filtro.x2)
+    dt.x2 <- dt 
     
     dt.z <- data.frame (dt.x1,  dt.x2) 
     
@@ -373,16 +372,14 @@ dt.diff.dist <- bind_rows (lapply (list.pos, function (filtro.x1) {
             dplyr::select ("mrks", "mrks.1", "diff.dist" ) %>%
             dplyr::rename (mrk.1 = mrks) %>% 
             dplyr::rename (mrk.2 = mrks.1) 
-    
-  #print (dt.z)
-    
-  #return (dt.z)
-      
-  }))
   
 }))
 
-start.time <- Sys.time()
+#end.time <- Sys.time()
+#time.taken <- end.time - start.time
+#time.taken
+
+#start.time <- Sys.time()
 
 df.LD.decay <- bind_rows ( lapply (list.mrks, function (filt.mrk) {
   
@@ -391,33 +388,36 @@ df.LD.decay <- bind_rows ( lapply (list.mrks, function (filt.mrk) {
   #print (filt.mrk)
   
   dt.diff.dist.mrk <-  dt.diff.dist %>% 
-                       dplyr::filter (mrk.1 == filt.mrk) 
+                       dplyr::filter (mrk.1 == filt.mrk)  # las diff de distancias de un marcador contra el resto
   
   colnames (LD.cross.matrix ) <- list.mrks
   rownames (LD.cross.matrix)  <- list.mrks
  
-  LD.cross <-  as_tibble (LD.cross.matrix)
+  LD.cross <-  as_tibble (LD.cross.matrix) # convierto en tibble la matriz de R2 que calcula ld
+ 
   LD.cross <- LD.cross %>%
-                   dplyr::mutate (mrk.id = list.mrks)%>%
-                   dplyr::select (mrk.id, everything())
+              dplyr::mutate (mrk.id = list.mrks)%>% ## agrego una columna
+              dplyr::select (mrk.id, everything())
   
-  LD.mrk.1 <- LD.cross %>%
-              dplyr::filter (mrk.id== filt.mrk)
+  LD.mrk.1 <- LD.cross %>%                          # me quedo con el marcador para el que calcule las distancias
+              dplyr::filter (mrk.id== filt.mrk)     # aca estan los r2 de ese marcador y el resto
   
   id.gather <- colnames (LD.mrk.1) [-1]
   
-  LD.cross.2 <- LD.mrk.1 %>%
+  LD.cross.2 <- LD.mrk.1 %>%           # traspongo el tibble de R2
                 gather (all_of (id.gather), key="mrk.2" , value = "R2") %>%
                 dplyr::rename (mrk.1 = mrk.id) 
   
-  LD.dist.cross.3 <- LD.cross.2 %>%
+  LD.dist.cross.3 <- LD.cross.2 %>% # aca uno los datos de distancia y R2
                     dplyr::inner_join ( dt.diff.dist.mrk ,  LD.cross.2, by= c("mrk.1", "mrk.2"))
   
-  #return (LD.dist.cross.3)
+  return (LD.dist.cross.3)
   
 }))
 
-
+#end.time <- Sys.time()
+#time.taken <- end.time - start.time
+#time.taken
 
 
 df.LD.decay <- df.LD.decay  %>%
@@ -426,71 +426,41 @@ df.LD.decay <- df.LD.decay  %>%
 
 ### verificar estas medidas
 
-if   ( distance.unit == "bp" ) {
-  
-  df.LD.decay <- df.LD.decay  %>%
-    dplyr::mutate (diff.dist = (diff.dist*1e-6))
-  
-}
-
-
-if   ( distance.unit == "Kb" ) {
-  
-  df.LD.decay <- df.LD.decay  %>%
-                 dplyr::mutate (diff.dist = diff.dist/1e6)
-
-}
-
 write_delim (df.LD.decay  , file =str_c("./Data/procdata/", id.cross, "LD.decay.LG", filt.chr,".txt"),
              delim = ",", na = "NA")
 
-if   ( distance.unit == "bp" | distance.unit == "Kb" | distance.unit == "bp" ) {
+if   (distance.unit == "Mb" ) {
+  
+  df.LD.decay.NA <- df.LD.decay %>%
+                    dplyr::filter (!is.na (R2))
+    
+  x2 <- max (df.LD.decay$diff.dist, na.rm = TRUE)
+  
+if (x2 > 100) {
 
-  png (filename = str_c("./Figures/",id.cross,".LD.decay.LG_", filt.chr,".png"),
-    width = 480, height = 480, units = "px", pointsize = 12,
-    bg = "white", res = NA)
+ plot.LD.decay <-  ggscatter (df.LD.decay.NA, x = "diff.dist", y = "R2",
+                   title =str_c(id.cross,".LD.decay.LG_", filt.chr)) +
+                   scale_x_continuous (name="(Distance (Mb)",
+                        breaks =seq(0,x2,100),
+                        #labels=NULL,
+                        limits=c(0, x2))
+}
 
-plot (x = df.LD.decay$diff.dist , y = df.LD.decay$R2, 
-      main=str_c(id.cross,".LD.decay.LG_", filt.chr),
-      pch = 20, 
-      type ="n",
-      xaxt="none",
-      yaxt="none",
-      axes = F,
-      xlim = c(0, max (df.LD.decay$diff.dist)), 
-      ylim = c(0, max (df.LD.decay$R2, na.rm = TRUE)),
-      ylab = expression(LD ~ (r^2)),
-      xlab = expression(Distance ~ (Mb))) 
+  if (x2 < 100) {
+    
+    plot.LD.decay <-  ggscatter (df.LD.decay.NA, x = "diff.dist", y = "R2",
+                                 title =str_c(id.cross,".LD.decay.LG_", filt.chr)) +
+      scale_x_continuous (name="(Distance (Mb)",
+                          breaks =seq(0,x2,10),
+                          #labels=NULL,
+                          limits=c(0, x2))
+  }
+  
+  plot.LD.decay  %>% 
+    ggexport(filename = str_c("./Figures/ plot.LD.decay.",chr,".png"))
+  
+  print (plot.LD.decay)
 
-axis(side = 2, las = 1)
-x2 <- max (df.LD.decay$diff.dist, na.rm = TRUE)
-axis (side=1,at=seq(0,x2,10),las = 1)
-
-
-points (df.LD.decay$diff.dist,df.LD.decay$R2, 
-        pch = 20, cex=1.5, col="gray28") 
-box()
-dev.off()
-
-plot (x = df.LD.decay$diff.dist , y = df.LD.decay$R2, 
-      main=str_c(id.cross,".LD.decay.LG_", filt.chr),
-      pch = 20, 
-      type ="n",
-      xaxt="none",
-      yaxt="none",
-      axes = F,
-      xlim = c(0, max (df.LD.decay$diff.dist)), 
-      ylim = c(0, max (df.LD.decay$R2, na.rm = TRUE)),
-      ylab = expression(LD ~ (r^2)),
-      xlab = expression(Distance ~ (Mb))) 
-
-axis(side = 2, las = 1)
-x2 <- max (df.LD.decay$diff.dist, na.rm = TRUE)
-axis (side=1,at=seq(0,x2,10),las = 1)
-
-points (df.LD.decay$diff.dist, df.LD.decay$R2, 
-        pch = 20, cex=1.5, col="gray28") 
-box()
 }
 
 #if   ( distance.unit == "cM" ) {
@@ -547,14 +517,12 @@ box()
 
 }
 
-
-# Time difference of 1.000327 mins
 start.time <- Sys.time()
 
-LD.EEMAC.cross.1.bp <- run_plot_heatmap_LD (id.cross ="EEMAC.cross.1.bp" , 
-                                            data.cross = EEMAC.cross.1.bp,  
+LD.EEMAC.cross.1.Mb <- run_plot_heatmap_LD (id.cross ="EEMAC.cross.1.Mb" , 
+                                            data.cross = EEMAC.cross.1.Mb,  
                                             heterozygotes = FALSE,
-                                            distance.unit = "bp")
+                                            distance.unit = "Mb")
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
@@ -611,16 +579,10 @@ max (df.geno.crom$diff.dist)
 #id.cross = "EEMAC.cross.1"
 #data= df.geno.crom
 #ini = 1
-#l1= 0.25
-#l2=0.5
-#l3=0.75
-#seq1 = c(1, 10, 50,100)
-#distance.unit = "Mb"
-
 
 run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2=0.5, l3=0.75, seq1= NULL, distance.unit = NULL) {
   
-  if   ( distance.unit != "cM" &  distance.unit != "Mb" & distance.unit != "Kb" & distance.unit != "bp" ) {
+  if   ( distance.unit != "cM" &  distance.unit != "Mb") {
     
     stop (str_c ("Debe definir una unidad de distancia valida"))
     
@@ -633,7 +595,7 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
     
   }
   
-  if   ( distance.unit == "Mb" | distance.unit == "Kb" | distance.unit == "bp") {
+  if   ( distance.unit == "Mb") {
     
     print (str_c ("El mapa es un mapa fisico"))
     
@@ -658,39 +620,39 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
     
     list.dist <- seq1
     
-  # filt.dist = 1 ######!!!!!!!
+    # filt.dist = 1 ######!!!!!!!
     
     df.hist.plot <- bind_rows (lapply (list.dist, function (filt.dist){
       
       print (filt.dist)
       
       ############### hay que revisar estos numeros ##############
-     # if   ( distance.unit == "Mb" ) {
-        
-        x.dist.Mb <- dat.1 %>%
-                     dplyr::filter (diff.dist <= filt.dist * 1e5)
-        
-        bin <- (filt.dist* 1e5)/1e6
-        
-        x.dist.Mb.1 <- x.dist.Mb %>%
-                       dplyr::mutate (bin = str_c (bin, "Mb"))
-        
-        #print (x.dist.Mb.1)
-        
+      # if ( distance.unit == "Mb" ) {
+      
+      x.dist.Mb <- dat.1 %>%
+        dplyr::filter (diff.dist <= filt.dist * 1e5)
+      
+      bin <- (filt.dist* 1e5)/1e6
+      
+      x.dist.Mb.1 <- x.dist.Mb %>%
+        dplyr::mutate (bin = str_c (bin, "Mb"))
+      
+      #return (x.dist.Mb.1)
+      
       #}
       
       #########################################################################
       
       ############### hay que revisar estos numeros ##############
       #if   ( distance.unit == "cM" ) {
-        
-       # x.dist.cM <- dat.1 %>%
-        #  dplyr::filter ( diff.dist <= filt.dist)
-        
+      
+      # x.dist.cM <- dat.1 %>%
+      #  dplyr::filter ( diff.dist <= filt.dist)
+      
       #  bin <- filt.dist
-        
-       # x.dist.cM <-x.dist.cM %>%
-       #            dplyr::mutate (bin = str_c (bin, "cM"))
+      
+      # x.dist.cM <-x.dist.cM %>%
+      #            dplyr::mutate (bin = str_c (bin, "cM"))
       #}
       
       ############### hay que revisar estos numeros ##############
@@ -703,17 +665,18 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
     #print (ggv)
     
     
-    ggh <- gghistogram (df.hist.plot, y = "..density..", x = "R2", facet.by = "bin",title =filt.crom,
-                       #fill = "lightgray",
-                       fill = "bin", palette =   "RdBu",
-                       add = "median", rug = TRUE)
+    ggh <- gghistogram (df.hist.plot, y = "..density..", x = "R2",
+                        facet.by = "bin",title =filt.crom,
+                        #fill = "lightgray",
+                        fill = "bin", palette =   "RdBu",
+                        add = "median", rug = TRUE)
     print (ggh)
     
     ggh  %>%
       ggexport(filename = str_c("./Figures/ggh_",id.cross, "_", filt.crom,".png"))
     
     
-    qqunif <- ggplot(df.hist.plot, aes(R2, colour =  bin , fill = bin), size=1.2) + stat_ecdf() +
+    qqunif <- ggplot(df.hist.plot, aes(R2, colour =  bin , fill = bin), size= 2) + stat_ecdf() +
       theme_bw()+
       stat_function(fun=punif,args=list(0,1))+
       scale_color_manual(values=c("green", "black", "blue", "red"))+
@@ -725,55 +688,60 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
     qqunif %>%
       ggexport(filename = str_c("./Figures/qqunif_",id.cross, "_", filt.crom,".png"))
     
-   # if   ( distance.unit == "cM" ) {
-      
-      # Nota: aca los estoy estoy tomando cada 0.5 cM hay que ver si esto reemplaza a 0.1 Mb
-      
-      #list.seqCM <- seq (from = 0.5, to = 20, by = 0.5)
-      #filt.distCM <- 0.5
-      #df.QQ.seq.cM <- bind_rows (lapply (list.seqCM, function (filt.distCM){
-        
-       # x.ini.cM <- dat.1 %>%
-        #  dplyr::filter (diff.dist <= ini * filt.distCM)
-      
-        #QQ <- quantile (x.ini.cM$R2)
-        
-        #l1 <- l1
-        #l2 <- l2
-        #l3 <- l3
-      #  q1 <- quantile (QQ, l1)
-       # q2 <- quantile (QQ, l2)
-      #  q3 <- quantile (QQ, l3)
-        
-       # XX <- data.frame( HLE=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLD = round (q3 [[1]],2), chrom = filt.crom)
-        
-        #dt.QQ.seq.cM <- XX %>%
-         # dplyr::mutate (inter.cM = filt.distCM ) %>%
-          #dplyr::select (chrom, inter.cM, HLE,   H1,  HLD )
-        
-      #}))
-      
-      
-      #df.QQ.seq.cM.long <- df.QQ.seq.cM %>%
-       # pivot_longer( ! c(chrom,inter.cM), names_to = "cat.LD", values_to = "unqq.R2")
-      
-      
-      #qq.scatt <- ggscatter (df.QQ.seq.cM.long, x = "inter.cM", y = "unqq.R2",
-       #                      title = str_c("Caida de qqR2 en funcion del bin", id.cross, "_", filt.crom),
-        #                     color = "cat.LD", shape = "cat.LD",
-         #                    palette = c("navyblue", "gray48", "darkorange"),
-          #                   add = "loess", rug= TRUE)
-      
-      #print (qq.scatt)
-      
-      #qq.scatt  %>%
-       # ggexport(filename = str_c("./Figures/qq.scatt_",id.cross, "_", filt.crom,".png"))
-      
-  #  }
+    # if   ( distance.unit == "cM" ) {
+    
+    # Nota: aca los estoy estoy tomando cada 0.5 cM hay que ver si esto reemplaza a 0.1 Mb
+    
+    #list.seqCM <- seq (from = 0.5, to = 20, by = 0.5)
+    #filt.distCM <- 0.5
+    #df.QQ.seq.cM <- bind_rows (lapply (list.seqCM, function (filt.distCM){
+    
+    # x.ini.cM <- dat.1 %>%
+    #  dplyr::filter (diff.dist <= ini * filt.distCM)
+    
+    #QQ <- quantile (x.ini.cM$R2)
+    
+    #l1 <- l1
+    #l2 <- l2
+    #l3 <- l3
+    #  q1 <- quantile (QQ, l1)
+    # q2 <- quantile (QQ, l2)
+    #  q3 <- quantile (QQ, l3)
+    
+    # XX <- data.frame( HLE=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLD = round (q3 [[1]],2), chrom = filt.crom)
+    
+    #dt.QQ.seq.cM <- XX %>%
+    # dplyr::mutate (inter.cM = filt.distCM ) %>%
+    #dplyr::select (chrom, inter.cM, HLE,   H1,  HLD )
+    
+    #}))
+    
+    
+    #df.QQ.seq.cM.long <- df.QQ.seq.cM %>%
+    # pivot_longer( ! c(chrom,inter.cM), names_to = "cat.LD", values_to = "unqq.R2")
+    
+    
+    #qq.scatt <- ggscatter (df.QQ.seq.cM.long, x = "inter.cM", y = "unqq.R2",
+    #                      title = str_c("Caida de qqR2 en funcion del bin", id.cross, "_", filt.crom),
+    #                     color = "cat.LD", shape = "cat.LD",
+    #                    palette = c("navyblue", "gray48", "darkorange"),
+    #                   add = "loess", rug= TRUE)
+    
+    #print (qq.scatt)
+    
+    #qq.scatt  %>%
+    # ggexport(filename = str_c("./Figures/qq.scatt_",id.cross, "_", filt.crom,".png"))
+    
+    #  }
     
   }))
   return (df.qq)
 }
+
+#l2=0.5
+#l3=0.75
+#seq1 = c(1, 10, 50,100)
+#distance.unit = "Mb"
 
 
 start.time <- Sys.time()
@@ -791,37 +759,39 @@ end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
 
-filtro = 1
-
-data = df.geno.crom 
-chr= filtro
-ini=10
-l1= 0.25
-l2=0.5
-l3=0.75
-keep.Mb = 0.1
-prob.HLMK = 51
-prob.HUMK = 50
 
 
-run_freq_decay <- function (data, chr=NULL, ini = 1, l1= 0.25, l2=0.5, l3=0.75, keep.Mb =NULL){
+#data = df.geno.crom 
+#chr= 1
+#ini=10
+#l1= 0.25
+#l2=0.5
+#l3=0.75
+#keep.Mb = 0.1
+#prob.HLMK = 51
+#prob.HUMK = 50
+
+
+run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.75, keep.Mb =NULL,
+                            prob.HLMK = NULL, 
+                            prob.HUMK = NULL){
   
   # el primer index p
   #index.chrom <- unique (data$chr)
   
   # control de la clases de los objetos
   assert_is_data.frame (data)
-  #assert_is_character (chr)
-  assert_is_numeric(ini)
+  assert_is_numeric (chr)
+  #assert_is_numeric(ini)
   assert_is_numeric(l1)
   assert_is_numeric(l2)
   assert_is_numeric(l3)
   
   
-  if (any (is_non_positive(ini), na.rm = TRUE)) {
+ # if (any (is_non_positive(ini), na.rm = TRUE)) {
     # Throw an error
-    stop ("ini contains non-positive values, so no puede caminar.")
-  }
+   # stop ("ini contains non-positive values, so no puede caminar.")
+  #}
   
   if (any (is_non_positive(c(l1, l2, l3)), na.rm = TRUE)) {
     # Throw an error
@@ -1058,21 +1028,15 @@ run_freq_decay <- function (data, chr=NULL, ini = 1, l1= 0.25, l2=0.5, l3=0.75, 
   print (scatter.num)
   print (scatter.num.HLMk)
   
-  
   ## datos para el grafico de proporciones 
   
   df.plot.LD.HUMk <- df.plot.LD %>%
                      dplyr::filter (class == "HUMk")
   
-  
+
   df.plot.LD.HLMk <- df.plot.LD %>%
                      dplyr::filter (class == "HLMk")
 
-  
-  df.plot.LD.HLMk$num.cat / df.plot.LD.HUMk$num.cat
-  
-
-  
 ### revisar el ratio si esta bien o hay otra mejor forma  
   
   df.plot.prob.HLMk_HUMk <-  df.plot.LD.HLMk %>%
@@ -1131,10 +1095,10 @@ run_freq_decay <- function (data, chr=NULL, ini = 1, l1= 0.25, l2=0.5, l3=0.75, 
 
   
   umbral.H <- umbral.H %>%
-    dplyr::mutate (HLMk_HUMk = umbral.HH$ratio )
+              dplyr::mutate (HLMk_HUMk = umbral.HH$ratio.HLHU)
   
-  
-  write_csv (umbral.H, path= str_c("./Data/procdata/umbral.H_", chr,".csv"), 
+
+  write_csv (umbral.H, file= str_c("./Data/procdata/umbral.HLMk_HUMk_", chr,".csv"), 
              na = "NA", append = FALSE)
   
   return (df.plot.LD)
@@ -1150,28 +1114,28 @@ head(df.geno.crom)
 ## Argumentos
 
 
-filtro = "chr_12"
-
-data = df.geno.crom 
-chr= filtro
-ini=1
-l1= 0.25
-l2=0.5
-l3=0.75
-
 
 
 # Voy a correr todos los cromosomas 
+start.time <- Sys.time()
 
 index.chrom <- unique (df.geno.crom$chrom)
 
-#index.chrom <- c("chr_1", "chr_18")
-
-dt.all.chrom <- lapply (index.chrom, function (filtro) {
+dt.all.chrom <- lapply (index.chrom, function (filt.chr) {
   
-  run_freq_decay (data = df.geno.crom , chr= filtro, ini=1,l1= 0.25, l2=0.5, l3=0.75)
+  run_freq_decay (df.geno.crom , 
+                  chr=filt.chr, 
+                  ini = NULL, l1= 0.25, l2=0.5, l3=0.75, keep.Mb =0.1,
+                  prob.HLMK = 51, 
+                  prob.HUMK = 50)
   
 })
+
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+
+
 
 #names (dt.all.chrom) <- index.chrom
 

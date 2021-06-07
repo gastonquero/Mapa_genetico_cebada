@@ -540,7 +540,7 @@ index.chr <- 1:7
 
 GENO.crom <- lapply (index.chr, function (filtro) {
   
-  G <- read_delim (file=paste("./Data/procdata/EEMAC.cross.1.bpLD.decay.LG",filtro,".txt",
+  G <- read_delim (file=paste("./Data/procdata/EEMAC.cross.1.MbLD.decay.LG",filtro,".txt",
                               sep=""), delim = ",",
                    na = "NA", quote = "\"",col_names = TRUE)
   
@@ -576,9 +576,14 @@ max (df.geno.crom$diff.dist)
 #########
 # Argumentos anteriores
 
-#id.cross = "EEMAC.cross.1"
-#data= df.geno.crom
-#ini = 1
+id.cross = "EEMAC.cross.1"
+data= df.geno.crom
+ini = 1
+l1= 0.25
+l2=0.5
+l3=0.75
+seq1 = c(1, 10, 50,100)
+distance.unit = "Mb"
 
 run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2=0.5, l3=0.75, seq1= NULL, distance.unit = NULL) {
   
@@ -608,7 +613,7 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
   
   
   list.chrom <- unique (data$chrom)
-  #filt.crom =2  ###
+  #filt.crom =1  ###
   
   df.qq <- bind_rows (lapply (list.chrom, function (filt.crom){
     
@@ -620,7 +625,7 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
     
     list.dist <- seq1
     
-    # filt.dist = 1 ######!!!!!!!
+     #filt.dist = 1 ######!!!!!!!
     
     df.hist.plot <- bind_rows (lapply (list.dist, function (filt.dist){
       
@@ -635,11 +640,15 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
       bin <- (filt.dist* 1e5)/1e6
       
       x.dist.Mb.1 <- x.dist.Mb %>%
-        dplyr::mutate (bin = str_c (bin, "Mb"))
+                     dplyr::mutate (bin = str_c (bin, "Mb"))
       
       #return (x.dist.Mb.1)
       
       #}
+      
+      
+      
+      
       
       #########################################################################
       
@@ -670,23 +679,71 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
                         #fill = "lightgray",
                         fill = "bin", palette =   "RdBu",
                         add = "median", rug = TRUE)
-    print (ggh)
+    #print (ggh)
     
     ggh  %>%
       ggexport(filename = str_c("./Figures/ggh_",id.cross, "_", filt.crom,".png"))
     
     
-    qqunif <- ggplot(df.hist.plot, aes(R2, colour =  bin , fill = bin), size= 2) + stat_ecdf() +
+    qqunif <- ggplot (df.hist.plot, aes(R2, colour=bin, group=bin ), size= 1.3)  + stat_ecdf() +
       theme_bw()+
       stat_function(fun=punif,args=list(0,1))+
-      scale_color_manual(values=c("green", "black", "blue", "red"))+
+      scale_color_manual(values=c("black", "orange","blue", "red"))+
       labs(title=str_c("ECDF and theoretical CDF","_", filt.crom)) +
       labs(y = "Theoretical Quantiles", x = "Sample Quantiles")
     
-    print (qqunif)
+    #print (qqunif)
     
     qqunif %>%
       ggexport(filename = str_c("./Figures/qqunif_",id.cross, "_", filt.crom,".png"))
+    
+    # Nota: aca los estoy estoy tomando cada 0.1 Mb
+    
+    x.ddist  <- max (dat.1$diff.dist)
+    
+    list.seqMb <- seq (from = 0.1, to = x.ddist , by = 0.1)
+    
+    
+    #filt.distMb <- 0.1
+    df.QQ.seq.Mb <- bind_rows (lapply (list.seqMb, function (filt.distMb){
+      #print (filt.distMb)
+      x.ini.Mb <- dat.1 %>%
+                  dplyr::filter (diff.dist <= filt.distMb)
+      
+      QQ <- quantile (x.ini.Mb$R2, na.rm = TRUE)
+      
+      l1 <- l1
+      l2 <- l2
+      l3 <- l3
+      q1 <- quantile (QQ, l1)
+      q2 <- quantile (QQ, l2)
+      q3 <- quantile (QQ, l3)
+      
+      XX <- data.frame( HUMk=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLMk = round (q3 [[1]],2), chrom = filt.crom)
+      
+      df.QQ.seq.Mb <- XX %>%
+                      dplyr::mutate (inter.Mb = filt.distMb ) %>%
+                      dplyr::select (chrom, inter.Mb, HUMk,   H1,  HLMk )
+      
+    
+      df.QQ.seq.Mb.long <- df.QQ.seq.Mb %>%
+                           pivot_longer( ! c(chrom,inter.Mb), names_to = "cat.LD", values_to = "unqq.R2")
+      
+    }))
+    
+    qq.scatt <- ggscatter (df.QQ.seq.Mb, x = "inter.Mb", y = "unqq.R2",
+                           title = str_c("Caida de qqR2 en funcion del bin_", 
+                                         id.cross, "_Chr.", filt.crom),
+                           color = "cat.LD", shape = "cat.LD",
+                           palette = c("navyblue", "gray48", "darkorange"))
+    
+    print (qq.scatt)
+    
+    qq.scatt  %>%
+      ggexport(filename = str_c("./Figures/qq.scatt_",id.cross, "_", filt.crom,".png"))
+    
+    
+    
     
     # if   ( distance.unit == "cM" ) {
     
@@ -752,7 +809,7 @@ EEMAC.cross.1.qq <- run_table_quantiles  ( id.cross = "EEMAC.cross.1",
                        l1= 0.25,
                        l2=0.5,
                        l3=0.75,
-                       seq1 = c(1, 10, 50, 100),
+                       seq1 = c(1, 5, 10, 20),
                        distance.unit = "Mb")
 
 end.time <- Sys.time()
@@ -781,7 +838,7 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
   
   # control de la clases de los objetos
   assert_is_data.frame (data)
-  assert_is_numeric (chr)
+  #assert_is_numeric (chr)
   #assert_is_numeric(ini)
   assert_is_numeric(l1)
   assert_is_numeric(l2)
@@ -815,21 +872,16 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
     stop ("l2 contains valor mayor a 1, so no se puede calcular.")
   }
   
-  
-  chr <- chr
-  print (chr)
-  ini <- ini
+
+index.chrom <- unique (df.geno.crom$chrom)
+
+  dt.all.chrom <- bind_rows (lapply (index.chrom, function (filt.chr) { 
   
   x1 <- data %>%
-        dplyr::filter (chrom == chr)
-  
-  #summary (x1)
+        dplyr::filter (chrom == filt.chr)
   
   x1.na <- x1 %>%
            dplyr:::filter (R2 != "NA")
-  
-  
-  ### secuencia para el lapply
   
   #max_delta_bp <- max(x1.na$diff.dist)
   max_delta_Mb <- max(x1.na$diff.dist)
@@ -838,9 +890,7 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
   
   index.Mb <- seq (keep.Mb, max_delta_Mb.r + keep.Mb, keep.Mb)
   
-
-  
-  dt.plot.LD <- bind_rows ( lapply (index.Mb, function (filt.Mb) { 
+  dt.plot.LD <- bind_rows (lapply (index.Mb, function (filt.Mb) { 
  
   ###### verificar esto con sebas     
     x.ini.Mb <- x1.na %>%
@@ -858,11 +908,11 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
     
     
     ###################
-    XX <- data.frame( HUMk=q1 [[1]] ,  H1= q2 [[1]], HLMk =q3 [[1]], chrom = chr)
+    XX <- data.frame( HUMk=q1 [[1]] ,  H1= q2 [[1]], HLMk =q3 [[1]], chrom = filt.chr)
     ################### 
     
     
-    print (str_c (filt.Mb, "Mb_chr_", chr))
+    print (str_c (filt.Mb, "Mb_chr_", filt.chr))
     
     
     x2 <- x1.na %>%
@@ -910,7 +960,7 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
     
     XX.2 <- data.frame (ratio = XX.1, class = XX.1.1, Mb=filt.Mb)
     
-    XX.3 <- data.frame (XX.2, num.total = num.total, chrom= chr)
+    XX.3 <- data.frame (XX.2, num.total = num.total, chrom= filt.chr)
     
     #XX.2$clase <- factor(df2$Genotype, levels = c("Genotype 2", "Genotype 3", "Genotype 1")).
     
@@ -922,41 +972,31 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
     
   }))
   
-
   df.plot.LD <- as_tibble (dt.plot.LD)
   
   df.plot.LD.W <- df.plot.LD %>%
                   dplyr::select (-num.total)
   
-  
   df.plot.LD.W <- df.plot.LD %>%
-    dplyr::select (-num.total)%>%
-    pivot_wider(names_from = class, values_from =ratio) %>%
-    dplyr::select (chrom, Mb, everything())
+                  dplyr::select (-num.total)%>%
+                  pivot_wider(names_from = class, values_from =ratio) %>%
+                  dplyr::select (chrom, Mb, everything())
   
-  
-  write_delim (df.plot.LD.W, file=str_c("./Data/procdata/df.plot.LD.W.", chr,".txt"), 
+  write_delim (df.plot.LD.W, file=str_c("./Data/procdata/df.freq.LD.Wider_", filt.chr,".txt"), 
                delim = ",", na = "NA") 
-  
-  
   
   df.plot.LD <- df.plot.LD %>%
                 dplyr::mutate (num.cat = num.total * ratio) %>%
                 dplyr::select (ratio, class, Mb, num.cat,num.total, chrom )
   
-  #df.plot.LD <- df.plot.LD %>%
-  #dplyr::mutate(Chrom=chrom)
-  
-  write_csv (df.plot.LD, file= str_c("./Data/procdata/df.freq.LD_", chr,".csv"), 
+  write_csv (df.plot.LD, file= str_c("./Data/procdata/df.freq.LD.Longer_", filt.chr,".csv"), 
              na = "NA", append = FALSE)
   
-  
   df.plot.1 <- df.plot.LD %>%
-    dplyr::select (c(Mb, ratio, class))
-  
+               dplyr::select (c(Mb, ratio, class))
   
   bplt <- ggbarplot (df.plot.1 , "Mb",  "ratio",
-                     title = str_c("LD.decay by interval chr_", chr),
+                     title = str_c("LD.decay by interval chr_", filt.chr),
                      fill = "class", 
                      border ="white",
                      #sort.val = "desc",
@@ -967,18 +1007,15 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
                      label = FALSE, lab.col = "white", lab.pos = "in")
   
   bplt1 <- bplt + 
-    rremove ("x.text")  
+           rremove ("x.text")  
   
   bplt1 %>% 
-    ggexport(filename = str_c("./Figures/plot.freq.decay.",chr,".png"))
-  
+        ggexport(filename = str_c("./Figures/plot.freq.decay.",filt.chr,".png"))
   
   print (bplt1)
   
-  
   #### df para el el grafico de numero de parwise
   clases <- c("HUMk", "HLMk")
-  
   
   df.num.HX <-  df.plot.LD %>%
                 dplyr::filter (class %in% clases) %>%
@@ -994,8 +1031,6 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
                  dplyr::mutate (class =  "Ntotal")%>%
                  dplyr::select (Mb, class, num.cat, chrom)
   
-  
-  
   df.num <-  bind_rows (df.num.HX, df.num.total) %>%
              dplyr::arrange (Mb)
   
@@ -1004,26 +1039,25 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
   scatter.num <- ggscatter (df.num, x = "Mb", y = "num.cat",
                             color="class", 
                             palette = c ("red", "navyblue", "gray48"),
-                            title = str_c("num.parwise by interval_", chr),
+                            title = str_c("num.parwise by interval chr_", filt.chr),
                             xlab = str_c ("(bin ", keep.Mb ,"Mb)"),
                             ylab = "num.parwise") 
-  
-  
+
   scatter.num %>%
-    ggexport(filename = str_c("./Figures/plot.scatter.num",chr,".png"))
+    ggexport(filename = str_c("./Figures/plot.scatter.num.chr_",filt.chr,".png"))
   
   df.num.HLMk <- df.num %>%
                  dplyr::filter (class == "HLMk")
   
-  
+  ##### esta figura no se si vale la pena 
   scatter.num.HLMk <- ggscatter (df.num.HLMk, x = "Mb", y = "num.cat",
                                 color="red", 
-                                title = str_c("num.parwise by interval_", chr),
+                                title = str_c("num.parwise by interval_HLMk_chr_", filt.chr),
                                 xlab = str_c ("(bin ", keep.Mb ,"Mb)"),
                                 ylab = "num.parwise")
   
   scatter.num.HLMk %>%
-    ggexport(filename = str_c("./Figures/plot.scatter.num.HLMk",chr,".png"))
+    ggexport(filename = str_c("./Figures/plot.scatter.HLMk_chr_",filt.chr,".png"))
   
   print (scatter.num)
   print (scatter.num.HLMk)
@@ -1033,7 +1067,6 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
   df.plot.LD.HUMk <- df.plot.LD %>%
                      dplyr::filter (class == "HUMk")
   
-
   df.plot.LD.HLMk <- df.plot.LD %>%
                      dplyr::filter (class == "HLMk")
 
@@ -1045,22 +1078,19 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
                              
   df.plot.prob.HLMk_HUMk$ratio.HLHU [which(!is.finite( df.plot.prob.HLMk_HUMk$ratio.HLHU))] <- NA
   
-  
-  
   df.plot.LD.HLMk_HUMk <- bind_rows (df.plot.LD.HLMk, df.plot.LD.HUMk) %>%
                           dplyr::arrange (Mb)
   
   df.plot.LD.HLMk_HUMk <- df.plot.LD.HLMk_HUMk %>%
                           dplyr::select ( ratio, class, Mb,chrom )
   
-
   umbral.H <- df.plot.LD.W %>%
               dplyr::filter (HUMk < prob.HUMK/100 & HLMk >= prob.HLMK/100)%>%
               dplyr::filter (Mb == max(Mb))
   
   scatter.prop.total <- ggscatter (df.plot.LD.HLMk_HUMk,  x = "Mb", y = "ratio",
                                    ylim=c(0,1),
-                                   title = str_c("proption by interval_", chr),
+                                   title = str_c("proption by interval_chr_", filt.chr),
                                    color = "class",
                                    palette = c( "navyblue",  "red"),
                                    xlab = str_c ("(bin ", keep.Mb ,"Mb)")) +
@@ -1069,7 +1099,7 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
     geom_vline(xintercept = umbral.H$Mb, color ="black") 
   
   scatter.prop.total %>%
-    ggexport(filename = str_c("./Figures/scatter.prop.total",chr,".png"))
+    ggexport(filename = str_c("./Figures/scatter.prop.total.chr_",filt.chr,".png"))
   
   print (scatter.prop.total)
   
@@ -1077,10 +1107,8 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
   umbral.HH <- df.plot.prob.HLMk_HUMk %>%
                dplyr::filter (Mb == umbral.H$Mb )
   
-
-  
   scatter.propHLMk_HUMk <- ggscatter (df.plot.prob.HLMk_HUMk, x = "Mb", y = "ratio.HLHU",
-                                    title = str_c("proportion HLMk/HUMk_", chr),
+                                    title = str_c("proportion HLMk/HUMk_chr_", filt.chr),
                                     #ylim=c(0,1),
                                     color = "black",
                                     xlab =  str_c ("(bin ", keep.Mb ,"Mb)")) +
@@ -1089,7 +1117,7 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
   
   
   scatter.propHLMk_HUMk %>%
-    ggexport(filename = str_c("./Figures/scatter.propHLMk_HUMk",chr,".png"))
+    ggexport(filename = str_c("./Figures/scatter.propHLMk_HUMk_chr",filt.chr,".png"))
   
   print (scatter.propHLMk_HUMk)
 
@@ -1097,25 +1125,18 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
   umbral.H <- umbral.H %>%
               dplyr::mutate (HLMk_HUMk = umbral.HH$ratio.HLHU)
   
-
-  write_csv (umbral.H, file= str_c("./Data/procdata/umbral.HLMk_HUMk_", chr,".csv"), 
-             na = "NA", append = FALSE)
+  return (umbral.H)
   
-  return (df.plot.LD)
+  }))
+
+write_csv (dt.all.chrom , file= str_c("./Data/procdata/umbral.HLMk_HUMk_chr",filt.chr ,".csv"), 
+           na = "NA", append = FALSE)
+
 }
 
 
 
-
-
-
-head(df.geno.crom)
-#unique (df.geno.crom$chr)
-## Argumentos
-
-
-
-
+#
 # Voy a correr todos los cromosomas 
 start.time <- Sys.time()
 
@@ -1135,6 +1156,11 @@ end.time <- Sys.time()
 time.taken <- end.time - start.time
 time.taken
 
+#### 
+
+
+
+
 
 
 #names (dt.all.chrom) <- index.chrom
@@ -1146,7 +1172,7 @@ write_delim (df.all.chrom, path = "./Data/procdata/freq_LD.txt",
 
 #### cargo los umbrales
 
-index.chr <- 1:20
+index.chr <- 1:7
 
 # se cargan las matrices generadas antes 
 # se genear una lista con 20 tibbles

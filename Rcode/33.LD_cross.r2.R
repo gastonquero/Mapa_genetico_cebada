@@ -331,7 +331,7 @@ map.cross <- pull.map ( crossobj, as.table = TRUE)
   LD.cross.matrix <- plot.hm$LDmatrix
 
   write.table (LD.cross.matrix , 
-               file = str_c("./Data/procdata/",id.cross, "_LD.cross.matrix_", filt.chr,".txt"),
+               file = str_c("./Data/procdata/",id.cross, "_LD.cross.matrix_chr", filt.chr,".txt"),
                append = FALSE, quote = TRUE, sep = ",",
                eol = "\n", na = "NA", dec = ".", row.names = TRUE,
                col.names = TRUE)
@@ -354,7 +354,7 @@ list.mrks <- (unique (dt$mrks))
 print (str_c("Estimando diff.dist LG= " ,filt.chr))
 
 
-#start.time <- Sys.time()
+start.time <- Sys.time()
 dt.diff.dist <- bind_rows (lapply (list.pos, function (filtro.x1) { 
   
    #filtro.x1 =  0.277230 
@@ -375,15 +375,15 @@ dt.diff.dist <- bind_rows (lapply (list.pos, function (filtro.x1) {
   
 }))
 
-#end.time <- Sys.time()
-#time.taken <- end.time - start.time
-#time.taken
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
 
-#start.time <- Sys.time()
+start.time <- Sys.time()
 
 df.LD.decay <- bind_rows ( lapply (list.mrks, function (filt.mrk) {
   
-  #filt.mrk= "JHI-Hv50k-2016-270"
+ # filt.mrk= "JHI-Hv50k-2016-270"
 
   #print (filt.mrk)
   
@@ -415,9 +415,9 @@ df.LD.decay <- bind_rows ( lapply (list.mrks, function (filt.mrk) {
   
 }))
 
-#end.time <- Sys.time()
-#time.taken <- end.time - start.time
-#time.taken
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
 
 
 df.LD.decay <- df.LD.decay  %>%
@@ -613,11 +613,12 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
   
   
   list.chrom <- unique (data$chrom)
-  #filt.crom =1  ###
+  filt.crom =1  ###
   
   df.qq <- bind_rows (lapply (list.chrom, function (filt.crom){
     
     print(filt.crom)
+ ### aca se puede en lugar de filtra r2 NA reemplazar por R2 =1
     
     dat.1 <- data %>%
       dplyr::filter (chrom == filt.crom) %>%
@@ -635,7 +636,7 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
       # if ( distance.unit == "Mb" ) {
       
       x.dist.Mb <- dat.1 %>%
-        dplyr::filter (diff.dist <= filt.dist * 1e5)
+                   dplyr::filter (diff.dist <= filt.dist * 1e5)
       
       bin <- (filt.dist* 1e5)/1e6
       
@@ -706,6 +707,7 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
     
     #filt.distMb <- 0.1
     df.QQ.seq.Mb <- bind_rows (lapply (list.seqMb, function (filt.distMb){
+      
       #print (filt.distMb)
       x.ini.Mb <- dat.1 %>%
                   dplyr::filter (diff.dist <= filt.distMb)
@@ -719,7 +721,7 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
       q2 <- quantile (QQ, l2)
       q3 <- quantile (QQ, l3)
       
-      XX <- data.frame( HUMk=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLMk = round (q3 [[1]],2), chrom = filt.crom)
+      XX <- data.frame ( HUMk=round (q1 [[1]],2) ,  H1= round (q2 [[1]],2), HLMk = round (q3 [[1]],2), chrom = filt.crom)
       
       df.QQ.seq.Mb <- XX %>%
                       dplyr::mutate (inter.Mb = filt.distMb ) %>%
@@ -737,12 +739,12 @@ run_table_quantiles <- function (id.cross=NULL,data= NULL, ini = 1, l1= 0.25, l2
                            color = "cat.LD", shape = "cat.LD",
                            palette = c("navyblue", "gray48", "darkorange"))
     
-    print (qq.scatt)
-    
+
+
     qq.scatt  %>%
-      ggexport(filename = str_c("./Figures/qq.scatt_",id.cross, "_", filt.crom,".png"))
+      ggexport (qq.scatt , filename = str_c("./Figures/qq.scatt_",id.cross, "_", filt.crom,".png"))
     
-    
+    print (qq.scatt)
     
     
     # if   ( distance.unit == "cM" ) {
@@ -817,21 +819,22 @@ time.taken <- end.time - start.time
 time.taken
 
 
-
-#data = df.geno.crom 
+id.cross = "EEMAC.cross.1"
+data = df.geno.crom 
 #chr= 1
 #ini=10
-#l1= 0.25
-#l2=0.5
-#l3=0.75
-#keep.Mb = 0.1
-#prob.HLMK = 51
-#prob.HUMK = 50
+l1= 0.25
+l2=0.5
+l3=0.75
+keep.Mb = 0.1
+prob.HLMK = 51
+prob.HUMK = 50
 
 
-run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.75, keep.Mb =NULL,
+run_freq_decay <- function (id.cross =NULL, data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.75, keep.Mb =NULL,
                             prob.HLMK = NULL, 
-                            prob.HUMK = NULL){
+                            prob.HUMK = NULL)
+  {
   
   # el primer index p
   #index.chrom <- unique (data$chr)
@@ -875,26 +878,37 @@ run_freq_decay <- function (data, chr=NULL, ini = NULL, l1= 0.25, l2=0.5, l3=0.7
 
 index.chrom <- unique (df.geno.crom$chrom)
 
+#filt.chr =1 
+
   dt.all.chrom <- bind_rows (lapply (index.chrom, function (filt.chr) { 
   
+  print (filt.chr)
+    
   x1 <- data %>%
         dplyr::filter (chrom == filt.chr)
   
+  ### reeeplazr NA por 1
   x1.na <- x1 %>%
            dplyr:::filter (R2 != "NA")
   
   #max_delta_bp <- max(x1.na$diff.dist)
   max_delta_Mb <- max(x1.na$diff.dist)
+  
   max_delta_Mb.r <- round(max_delta_Mb + 1,0)
+  
   #index.Mb <- seq (1, (round(max_delta_Mb + 1,0)), 1)
   
-  index.Mb <- seq (keep.Mb, max_delta_Mb.r + keep.Mb, keep.Mb)
+  index.Mb <- seq (keep.Mb, max_delta_Mb.r, keep.Mb)
+
   
   dt.plot.LD <- bind_rows (lapply (index.Mb, function (filt.Mb) { 
  
-  ###### verificar esto con sebas     
+  ###### verificar esto con sebas    
+    #filt.Mb = 0.1 
+    
+     
     x.ini.Mb <- x1.na %>%
-                dplyr::filter (diff.dist <= 1 * 1e5)  ### aca me quedo con la primer 0.1 Mb siempre
+                dplyr::filter (diff.dist <= 0.1)  ### aca me quedo con la primer 0.1 Mb siempre
     
     QQ <- quantile (x.ini.Mb$R2)
     
@@ -912,7 +926,7 @@ index.chrom <- unique (df.geno.crom$chrom)
     ################### 
     
     
-    print (str_c (filt.Mb, "Mb_chr_", filt.chr))
+    #print (str_c (filt.Mb, "Mb_chr_", filt.chr))
     
     
     x2 <- x1.na %>%
@@ -1084,10 +1098,31 @@ index.chrom <- unique (df.geno.crom$chrom)
   df.plot.LD.HLMk_HUMk <- df.plot.LD.HLMk_HUMk %>%
                           dplyr::select ( ratio, class, Mb,chrom )
   
-  umbral.H <- df.plot.LD.W %>%
-              dplyr::filter (HUMk < prob.HUMK/100 & HLMk >= prob.HLMK/100)%>%
-              dplyr::filter (Mb == max(Mb))
   
+ max.pHLMk <- round (max (df.plot.LD.W$HLMk ), 2)
+ 
+ print (str_c("La maxima probalidad para HLMk es del ", max.pHLMk*100, "%" ))
+ 
+if (prob.HLMK/100 > max.pHLMk) {
+  
+  print ( str_c("La probalidad para HLMk usada fue del ", max.pHLMk*100, "%" ))
+  
+  umbral.H <- df.plot.LD.W %>%
+    dplyr::filter (HUMk < prob.HUMK/100 & HLMk  >= max.pHLMk ) %>%
+    dplyr::filter (Mb == max(Mb))
+  
+}
+
+ if ( prob.HLMK/100 < max.pHLMk ) {
+   
+ print (str_c("La probalidad para HLMk usada fue del ", prob.HLMK, "%" ))
+   
+  umbral.H <- df.plot.LD.W %>%
+              dplyr::filter (HUMk < prob.HUMK/100 & HLMk  >= prob.HLMK/100) %>%
+              dplyr::filter (Mb == max(Mb))
+
+ }
+ 
   scatter.prop.total <- ggscatter (df.plot.LD.HLMk_HUMk,  x = "Mb", y = "ratio",
                                    ylim=c(0,1),
                                    title = str_c("proption by interval_chr_", filt.chr),
@@ -1129,7 +1164,16 @@ index.chrom <- unique (df.geno.crom$chrom)
   
   }))
 
-write_csv (dt.all.chrom , file= str_c("./Data/procdata/umbral.HLMk_HUMk_chr",filt.chr ,".csv"), 
+  dt.all.chrom <- dt.all.chrom  %>%
+                  dplyr::mutate ( Mb = round   ( Mb, 2))   %>%
+                  dplyr::mutate ( HLMk = round ( HLMk, 2)) %>%
+                  dplyr::mutate ( LMk = round ( LMk, 2)) %>%             
+                  dplyr::mutate ( UMk = round ( UMk, 2)) %>%               
+                  dplyr::mutate ( HUMk = round ( HUMk, 2)) %>%            
+                  dplyr::mutate ( HLMk_HUMk = round ( HLMk_HUMk, 2))
+  
+  
+write_csv (dt.all.chrom , file= str_c("./Data/procdata/umbral.HLMk_HUMk_", id.cross, ".csv"), 
            na = "NA", append = FALSE)
 
 }
@@ -1138,19 +1182,16 @@ write_csv (dt.all.chrom , file= str_c("./Data/procdata/umbral.HLMk_HUMk_chr",fil
 
 #
 # Voy a correr todos los cromosomas 
+
 start.time <- Sys.time()
 
-index.chrom <- unique (df.geno.crom$chrom)
-
-dt.all.chrom <- lapply (index.chrom, function (filt.chr) {
-  
-  run_freq_decay (df.geno.crom , 
+dt.all.chrom <- run_freq_decay (df.geno.crom , 
                   chr=filt.chr, 
                   ini = NULL, l1= 0.25, l2=0.5, l3=0.75, keep.Mb =0.1,
-                  prob.HLMK = 51, 
+                  prob.HLMK = 10, 
                   prob.HUMK = 50)
   
-})
+
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time
@@ -1158,11 +1199,21 @@ time.taken
 
 #### 
 
+umbral.HLMk_HUMk.x  <- read_delim (file = "./Data/procdata/umbral.HLMk_HUMk.csv" ,
+                                 col_names = TRUE, delim = ",", na = "NA")
 
+head (umbral.HLMk_HUMk.x )
+umbral.HLMk_HUMk.x1 <- umbral.HLMk_HUMk.x  %>%
+                      dplyr::mutate ( Mb = round   ( Mb, 2))   %>%
+                      dplyr::mutate ( HLMk = round ( HLMk, 2)) %>%
+                      dplyr::mutate ( LMk = round ( LMk, 2)) %>%             
+                      dplyr::mutate ( UMk = round ( UMk, 2)) %>%               
+                      dplyr::mutate ( HUMk = round ( HUMk, 2)) %>%            
+                      dplyr::mutate ( HLMk_HUMk = round ( HLMk_HUMk, 2))        
 
-
-
-
+write_csv (umbral.HLMk_HUMk.x1 , file= str_c("./Data/procdata/umbral.HLMk_HUMk_EEMAC.cross.1.csv"), 
+           na = "NA", append = FALSE)
+                                      
 #names (dt.all.chrom) <- index.chrom
 
 df.all.chrom <- do.call (rbind, dt.all.chrom)

@@ -40,8 +40,258 @@ library (onemap)
 library (broman) 
 library (ASMap)
 
-
 #### cargo los datos
+
+## Resumen
+# Construcción mapa de cebada 
+# Se usaron los datos geneticos de Cebada x Carumbe
+# datos enviados por Ariel Castro                                   
+# fecha:	28 de junio de 2018, 15:26
+# Se incorpora el mapa de Nicolas Mastandrea 
+# enviados el 20/02/2020
+
+### Pre_mapa
+# Identificacion de ID para que las etiquetas de marcadores y los individuos coincidan
+
+Ids_individuos_ceibo_carumbe <- read_delim (file="./Data/rawdata/ids_rils_ceibo_carumbe.txt", 
+                                 delim = "\t", na = "NA")
+
+
+Ids_mkrs_eurekaSSR <- read_delim (file="./Data/rawdata/ids_markers_eurekaSSR.txt", 
+                                  delim = "\t", na = "NA")
+
+#### base "Eureka + SSR"  ###############
+# Los marcadores del mapa que tenemos hoy, con el que han trabajado Pia,
+# Nico y Andres, estan en la hoja "Eureka + SSR". Deben, obviamente, ponerse
+# en el analisis
+
+geno_eurekaSSR <- read_delim (file="./Data/rawdata/geno_eurekaSSR.txt", 
+                              delim = "\t", na = "-")
+
+
+
+### es la informacion de los estados alelicos
+pre.one.eurekaSSR.1  <- geno_eurekaSSR  %>%
+                        dplyr::select (-cod_1)
+
+IDs.genotypes.eurekaSSR <-  colnames (pre.one.eurekaSSR.1)
+
+# reemplazo los alelos
+pre.one.eurekaSSR.1 [pre.one.eurekaSSR.1 =="A"] <- "a" 
+pre.one.eurekaSSR.1 [pre.one.eurekaSSR.1 =="B"] <- "b" 
+
+
+# estos son las etiquetas de los marcadores        
+marks <- geno_eurekaSSR  %>%
+         dplyr::select (cod_1) %>%
+         dplyr::mutate (cod_1 = str_c ("*M", cod_1)) %>%
+         dplyr::mutate (sgre = "A.B")
+
+
+#uno las matrices
+pre.one.eurekaSSR.2 <- bind_cols (marks, pre.one.eurekaSSR.1)
+
+
+#exporto la matriz
+
+write_delim (pre.one.eurekaSSR.2, file ="./Data/procdata/pre.one.eurekaSSR.2.txt",
+              delim = " ", na = "-")
+
+
+#armo los metados 
+info.cross.eurekaSSR <- "data type ri self" 
+
+n.genotypes.eurekaSSR <- length (IDs.genotypes.eurekaSSR)
+n.mrk.eurekaSSR <- nrow (marks)
+
+info.cross.num.eurekaSSR <- c(n.genotypes.eurekaSSR,n.mrk.eurekaSSR,0,0,0)
+
+## hay que escribir los metadatos en el txt
+## hay que cambiar la extension
+## sacar los header de los marcadores y la segregacion
+
+### reingreso los datos
+onemap_eurekaSSR_riself <- read_onemap (dir="./Data/procdata", 
+                                  inputfile = "pre.one.eurekaSSR.2.txt" )
+
+# Visualization of raw data ##
+class (onemap_eurekaSSR_riself)
+
+str (onemap_eurekaSSR_riself)
+
+plot (onemap_eurekaSSR_riself)
+
+#Find redundant markers
+
+(bins_eurekaSSR <- find_bins (onemap_eurekaSSR_riself, exact = FALSE))
+
+# We can create a new OneMap object without them
+# This function keeps only the most representative marker of each bin from bins object.
+
+(onemap_eurekaSSR_riself_bins <- create_data_bins (onemap_eurekaSSR_riself, bins_eurekaSSR))
+
+
+#Exporting.raw file from OneMap object
+
+write_onemap_raw (onemap_eurekaSSR_riself_bins, file.name = "./Data/procdata/onemap_eurekaSSR_riself_bins.raw")
+
+# Segregation tests
+#Now, it should be interesting to see if markers are segregating following what is expected by Mendel’s law. 
+
+eurekaSSR_test <- test_segregation (onemap_eurekaSSR_riself_bins)
+
+class (eurekaSSR_test)
+print (eurekaSSR_test)
+
+Bonferroni_alpha (eurekaSSR_test)
+
+plot (eurekaSSR_test)
+print (eurekaSSR_test)
+
+### estos son los marcadores distorcionados
+
+(dist <- select_segreg (eurekaSSR_test, distorted = TRUE, numbers = FALSE)) #to show the markers numbers with segregation distortion
+
+### estos son los marcadores que despues se usan para hacer los grupos de ligamiento
+
+(no_dist <- select_segreg (eurekaSSR_test, distorted = FALSE, numbers = TRUE)) #to show the markers numbers without segregation distortion
+
+
+
+# Estimating two-point recombination fractions
+# There are two optional arguments in function rf_2pts: 
+# LOD and max.rf which indicate the minimum LOD Score and the maximum recombination fraction to declare linkage 
+# (they default to 3.0 and 0.5, respectively).
+# The default for the recombination fraction is easy to understand, because if max.rf < 0.5 
+# we could state that markers are linked. 
+# The LOD Score is the statistic used to evaluate the significance of the test for max.rf = 0.50. 
+# This needs to take into consideration the number of tests performed, which of course depends on the number of markers. 
+
+# Function suggest_lod can help users to find an initial value to use for their linkage test. For this example:
+  
+(LOD_sug <- suggest_lod (onemap_eurekaSSR_riself_bins))
+
+# estimate recombination fractions between all pairs of markers (two-point tests).
+twopts_eurekaSSR <- rf_2pts (input.obj = onemap_eurekaSSR_riself_bins, LOD = LOD_sug)
+
+class (twopts_eurekaSSR)
+
+### esta es la matrix de recombinacion
+# xx <- twopts_eurekaSSR[["analysis"]]
+
+# Using only recombinations informations
+
+# Assigning markers to linkage groups
+#mark_all_riself <- make_seq (twopts_riself, "all")
+
+mark_no_dist_riself <- make_seq (twopts_eurekaSSR, no_dist)
+class (mark_no_dist_riself)
+
+#Forming the groups
+(LGs_eurekaSSR <- group (mark_no_dist_riself,  LOD = LOD_sug, max.rf = 0.5))
+
+
+str (LGs_eurekaSSR )
+
+# Ordering markers within linkage groups
+#To use Haldane, type
+
+#set_map_fun(type = "haldane")
+
+#To use Kosambi’s function:
+  
+set_map_fun(type = "kosambi")
+
+list.LG <- seq (from=1, to = LGs_eurekaSSR$n.groups, by=1)
+
+
+link_Group_eurekaSSR <- lapply (list.LG, function (filt.lg){
+  print (str_c ("LG.", filt.lg))
+  LGx_LGs_eurekaSSR <- make_seq (LGs_eurekaSSR, filt.lg)
+  
+})
+
+
+LG_ug_eurekaSSR <- lapply (list.LG, function (filt.lg){
+  print (str_c ("LG.", filt.lg))
+  LGx <- link_Group_eurekaSSR [[filt.lg]]
+  
+  LGx_ug <- ug (input.seq = LGx, rm_unlinked = TRUE)
+  
+})
+
+LG_rcd_eurekaSSR <- lapply (list.LG, function (filt.lg){
+  print (str_c ("LG.", filt.lg))
+  LGx <- link_Group_eurekaSSR [[filt.lg]]
+  
+  LGx_ug <- rcd (input.seq = LGx, rm_unlinked = TRUE)
+  
+  
+})
+
+LG_record_eurekaSSR <- lapply (list.LG, function (filt.lg){
+  print (str_c ("LG.", filt.lg))
+  LGx <- link_Group_eurekaSSR [[filt.lg]]
+  
+  LGx_record <- record (input.seq = LGx, rm_unlinked = TRUE)
+  
+  
+})
+
+LG_seriation_eurekaSSR <- lapply (list.LG, function (filt.lg){
+  print (str_c ("LG.", filt.lg))
+  LGx <- link_Group_eurekaSSR [[filt.lg]]
+  
+  LGx_seration <- seriation (input.seq = LGx, rm_unlinked = TRUE)
+  
+  
+})
+
+list.LG.mds <- c(1,2, 3, 5,6,9,10,12,13)
+
+LG_mds_eurekaSSR <- lapply (list.LG.mds, function (filt.lg){
+  print (str_c ("LG.", filt.lg))
+  LGx <- link_Group_eurekaSSR [[filt.lg]]
+  
+  LGx_mds <- mds_onemap (input.seq = LGx, rm_unlinked = TRUE)
+  
+  
+})
+
+
+LG_ug_eurekaSSR_ord  <- lapply (list.LG, function (filt.lg){
+                         print (str_c ("LG.", filt.lg))
+           
+          LG.ug <- LG_ug_eurekaSSR  [[filt.lg]]
+  
+           LGx_ord <- order_seq (input.seq =LG.ug, n.init = 5,
+                                 subset.search = "twopt",
+                                 twopt.alg = "rcd", THRES = 3)
+  
+  
+})
+
+LG1_riself_ord <- order_seq (input.seq = LG1_ug_riself, n.init = 5,
+                        subset.search = "twopt",
+                        twopt.alg = "rcd", THRES = 3)
+
+LG1_riself_safe <- make_seq (LG1_riself_ord, "safe")
+(LG1_riself_all <- make_seq (LG1_riself_ord, "force"))
+
+LG1_riself_ord <- order_seq(input.seq =  LG1_ug_riself, n.init = 5,
+                        subset.search = "twopt",
+                        twopt.alg = "rcd", THRES = 3,
+                        touchdown = TRUE)
+
+
+
+#By now, we ordered our group in several ways, but, which one result in the best order? 
+# We can check it plotting the color scale recombination fraction matrix and see if the generated maps 
+# obey the colors patterns expected.
+
+# You can see the number of loci within each type using function plot_by_segreg_type:
+
+plot_by_segreg_type (onemap_eurekaSSR_riself)
 
 ## esta es la referencia anterior de la posicion 
 pia.mcd <- read_delim (file="./Data/rawdata/posiciones.pia.mcd.txt", 

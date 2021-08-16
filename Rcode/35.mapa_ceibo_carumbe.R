@@ -211,7 +211,6 @@ link_Group_eurekaSSR <- lapply (list.LG, function (filt.lg){
   
 })
 
-
 LG_ug_eurekaSSR <- lapply (list.LG, function (filt.lg){
   print (str_c ("LG.", filt.lg))
   LGx <- link_Group_eurekaSSR [[filt.lg]]
@@ -258,18 +257,99 @@ LG_mds_eurekaSSR <- lapply (list.LG.mds, function (filt.lg){
   
 })
 
+### dos estrategias de ordenamient0
 
-LG_ug_eurekaSSR_ord  <- lapply (list.LG, function (filt.lg){
+LG_rcd_eurekaSSR_ord  <- lapply (list.LG, function (filt.lg){
                          print (str_c ("LG.", filt.lg))
            
-          LG.ug <- LG_ug_eurekaSSR  [[filt.lg]]
+          LG.rcd <- LG_rcd_eurekaSSR  [[filt.lg]]
   
-           LGx_ord <- order_seq (input.seq =LG.ug, n.init = 5,
+           LGx_ord <- order_seq (input.seq =LG.rcd, n.init = 5,
                                  subset.search = "twopt",
                                  twopt.alg = "rcd", THRES = 3)
+})
+
+LG_rcd_eurekaSSR_force  <- lapply (list.LG, function (filt.lg){
+  print (str_c ("LG.", filt.lg))
   
+  LGx.ord <- LG_rcd_eurekaSSR_ord   [[filt.lg]]
+  
+  LGx_seq <- make_seq (LGx.ord, "force")
+
+})
+
+LG_eurekaSSR_dist  <- lapply (list.LG, function (filt.lg){
+ 
+   print (str_c ("LG.", filt.lg))
+  
+  LGx.dist <- LG_rcd_eurekaSSR_force  [[filt.lg]]
+  
+  LGx_seq.dist <- onemap::map (LGx.dist)
   
 })
+
+write_map (LG_eurekaSSR_dist, "./Data/procdata/eurekaSSR.txt")
+
+## reingreso los dato del mapa para formatear
+
+eurekaSSR.map <- read_delim (file="./Data/procdata/eurekaSSR.txt", 
+                                  delim = " ", na = "NA", col_names = FALSE )
+
+eurekaSSR.map <- eurekaSSR.map %>%
+                 dplyr::rename (Chr = X1 )%>%
+                 dplyr::rename (Name = X2) %>%
+                 dplyr::rename (Position = X3) %>%
+                 dplyr::select (Name, Chr, Position) %>%
+                 dplyr::mutate (Name = str_c ("*", Name))
+
+eurekaSSR_riself <- read_delim (file="./Data/procdata/onemap_eurekaSSR_riself_bins.x.txt" ,
+                                onemap_eurekaSSR_riself_bins.raw, na = "-")
+
+
+head (eurekaSSR.map )
+
+
+eurekaSSR_Mapeo.qtl <- read.cross (format="tidy",
+                                dir="./Data/procdata",
+                                genfile ="geno_III50K.2.csv", 
+                                mapfile ="pmap_III50K.2.csv" , 
+                                phefile ="pheno_III50K.2.csv" , 
+                                na.strings="-",
+                                alleles=c("A","B"),
+                                estimate.map=FALSE, 
+                                convertXdata=TRUE, error.prob=0.0001,
+                                map.function="kosambi",
+                                #F.gen=6, 
+                                crosstype ="riself")
+
+
+
+
+
+
+
+
+
+dat1 <- read.cross("mm", file="./Data/procdata/", mapfile="mapmaker_eurekaSSR.map")
+
+# Mapmaker format
+dat3 <- read.cross("mm", dir="./Data/procdata/", file="onemap_eurekaSSR_riself_bins.raw",
+                   mapfile="mapmaker_eurekaSSR.map", crosstype ="riself")
+
+
+
+(progeny_haplot <- progeny_haplotypes(xx, most_likely = TRUE, group_names = "x"))
+
+draw_map(LG_eurekaSSR_dist, names = TRUE, grid = TRUE, cex.mrk = 0.7)
+
+plot(progeny_haplot, position = "split")
+
+LG1.eurekaSSR <- LG_rcd_eurekaSSR_force     [[1]]
+
+
+ripple_seq (LG1.eurekaSSR, ws = 2, LOD = 3)
+
+(LG1_f2_all <- make_seq(LG1_f2_ord, "force"))
 
 LG1_riself_ord <- order_seq (input.seq = LG1_ug_riself, n.init = 5,
                         subset.search = "twopt",

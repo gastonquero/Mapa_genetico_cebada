@@ -79,9 +79,9 @@ mrk.I50K <- I50K %>%
             dplyr::select (Name)
 
 geno.I50k.1 <- bind_cols (mrk.I50K ,geno.I50k.1)
+dim (geno.I50k.1)
 
-write_delim (geno.I50k.1, path ="./Data/procdata/geno_I50K.1.csv",
-             delim = ",", na = "-")
+
 
 ## ahora genero pmap
 pmap_I50K <- I50K  %>%
@@ -92,32 +92,66 @@ write_delim (pmap_I50K, file ="./Data/procdata/pmap_I50K.1.csv",
 
 
 ### generar la pheno
+pheno_2016 <- read_delim (file="./Data/rawdata/pheno_2016.txt", 
+                          delim = "\t", na = "NA")
+
+miss.pheno <- c( "IND3", "IND40", "IND86","IND91","IND99")
+
+pheno_2016a <- pheno_2016 %>%
+               dplyr::select (-c( "IND3", "IND40", "IND86","IND91","IND99"))
+
 colnames (geno.I50k.1)
-id <- colnames (geno.I50k.1) [2:81] 
-random <- rnorm(80, 0, 1)
-length(random)
-length(id)
-pheno_I50K.1 <- rbind(id, random)
-pheno_I50K.1 <- as.data.frame (pheno_I50K.1)
-colnames (pheno_I50K.1) <- id
-pheno_I50K.1  <- pheno_I50K.1 [-1,]
+colnames (pheno_2016a)
 
-pheno_I50K.1 <- pheno_I50K.1 %>%
-                dplyr::mutate (X="trait")%>%
-                dplyr::select (X,everything())
+setdiff (colnames(geno.I50k.1), colnames(pheno_2016a))
+setdiff (colnames(pheno_2016a), colnames(geno.I50k.1))
 
-write_delim (pheno_I50K.1, path ="./Data/procdata/pheno_I50K.1.csv",
+geno.I50k.1 <- geno.I50k.1 %>%
+               dplyr::select (-c("IND3" , "IND99" ))
+
+pheno_2016a <- pheno_2016a %>%
+               dplyr::select (-c("IND5",  "IND16", "IND30" ,"IND47"))
+
+
+write_delim (geno.I50k.1, file ="./Data/procdata/geno_I50K.1.csv",
              delim = ",", na = "-")
+
+write_delim (pheno_2016a, file ="./Data/procdata/pheno_2016a.csv",
+             delim = ",", na = "-")
+
+
+#colnames (geno.I50k.1)
+#id <- colnames (geno.I50k.1) [2:79] 
+#random <- rnorm(78, 0, 1)
+#length(random)
+#length(id)
+#pheno_I50K.1 <- rbind(id, random)
+#pheno_I50K.1 <- as.data.frame (pheno_I50K.1)
+#colnames (pheno_I50K.1) <- id
+#pheno_I50K.1  <- pheno_I50K.1 [-1,]
+
+#pheno_I50K.1 <- pheno_I50K.1 %>%
+ #               dplyr::mutate (X="trait")%>%
+  #              dplyr::select (X,everything())
+
+#write_delim (pheno_I50K.1, file ="./Data/procdata/pheno_I50K.1.csv",
+#             delim = ",", na = "-")
+
+
+
+
+
 
 ##### 
 ## Datos
 # Se cargan los datos originales en el formato de *rqtl*
+
 # cross I50K.2
 cross_I50K.2 <- read.cross (format="tidy",
                                 dir="./Data/procdata",
                                 genfile ="geno_I50K.1.csv", 
                                 mapfile ="pmap_I50K.1.csv" , 
-                                phefile ="pheno_I50K.1.csv" , 
+                                phefile ="pheno_2016a.csv" , 
                                 na.strings="-",
                                 alleles=c("A","B"),
                                 estimate.map=FALSE, 
@@ -126,12 +160,10 @@ cross_I50K.2 <- read.cross (format="tidy",
                                 #F.gen=6, 
                                 crosstype ="riself")
 
-
-
 ## ## Análisis
 ### Curado de Datos
 
-plotMissing (cross_I50K.2)
+#plotMissing (cross_I50K.2)
 
 #Se eliminan los marcadores con mas del 50 % de datos faltantes
 n.missing <- nmissing (cross_I50K.2, what="mar")[(nmissing(cross_I50K.2, 
@@ -159,7 +191,7 @@ indiv <- subset (cross_I50K.3 ,
 #(indiv$pheno$id)
 
 #Esta es la matriz despues de filtrar por datos faltantes
-plotMissing (cross_I50K.4 )
+#plotMissing (cross_I50K.4 )
 
 #### Individuos duplicados
 
@@ -201,12 +233,12 @@ freq.geno <- lapply (imkrs, function (filtro) {
 
 df.geno.freq <- as_tibble(do.call (rbind, freq.geno))
 
-ggbarplot (df.geno.freq, "mkrs", "frq",
-           fill = "alelle", color = "alelle", 
-           palette =c("orangered1","royalblue4"),
-           label = FALSE, lab.col = "white", lab.pos = "out") +
-  geom_hline(yintercept = 0.5 ,  colour = "black", linetype = "dashed") +
-  rremove("x.text")
+#ggbarplot (df.geno.freq, "mkrs", "frq",
+ #          fill = "alelle", color = "alelle", 
+  #         palette =c("orangered1","royalblue4"),
+   #        label = FALSE, lab.col = "white", lab.pos = "out") +
+  #geom_hline(yintercept = 0.5 ,  colour = "black", linetype = "dashed") +
+  #rremove("x.text")
 
 #Se sacaron los siguientes marcadores 
 
@@ -241,20 +273,18 @@ freq.geno <- lapply (imkrs, function (filtro) {
 
 df.geno.freq <- as_tibble(do.call (rbind, freq.geno))
 
-ggbarplot (df.geno.freq, "mkrs", "frq",
-           fill = "alelle", color = "alelle", 
-           palette =c("orangered1","royalblue4"),
-           label = FALSE, lab.col = "white", lab.pos = "out") +
-  geom_hline(yintercept = 0.5 ,  colour = "black", linetype = "dashed") +
-  rremove("x.text")
+#ggbarplot (df.geno.freq, "mkrs", "frq",
+          # fill = "alelle", color = "alelle", 
+           #palette =c("orangered1","royalblue4"),
+           #label = FALSE, lab.col = "white", lab.pos = "out") +
+  #geom_hline(yintercept = 0.5 ,  colour = "black", linetype = "dashed") +
+  #rremove("x.text")
 
 #Ahora quedan 
 
-plotMap (cross_I50K.5)
-
+#plotMap (cross_I50K.5)
 
 # Realizo un analisis de calidad de la nueva matriz uso el *ASMap*
-
 
 #################
 cross_I50K.6 <- mstmap (cross_I50K.5, 
@@ -301,19 +331,29 @@ sum(ncol(cross_I50K.8$missing$data), ncol(cross_I50K.8$seg.dist$data), ncol(cros
 
 summary (cross_I50K.8  )
 
-plotMissing(cross_I50K.8)
+#plotMissing(cross_I50K.8)
 
 cross_I50K.9 <- mstmap (cross_I50K.8,id = "id",
                         bychr = FALSE, trace = TRUE, dist.fun = "kosambi", p.value = 1e-06)
 
 chrlen (cross_I50K.9)
-heatMap(cross_I50K.9, lmax = 50)
+#heatMap(cross_I50K.9, lmax = 50)
 
 plotMap (cross_I50K.9)
 
 class (cross_I50K.9 )
 
-write.cross (cross_I50K.9, format= "tidy",
-            filestem="./Data/procdata/cross_I50K.9", digits=4)
+#write.cross (cross_I50K.9, format= "tidy",
+ #           filestem="./Data/procdata/cross_I50K.9", digits=2)
+
+write.cross (cross_I50K.9, format= "csv",
+             filestem="./Data/procdata/cross_I50K.9", digits=2)
+
+write.cross (cross_I50K.9, format= "qtlcart",
+             filestem="./Data/procdata/cross_I50K.9q" )
+
+
+
+
 
 ##### ACA termina  la generacion del mapa de ilumina #####################
